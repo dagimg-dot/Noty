@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=noty
+Exec=noty
+Icon=com.dagimg.noty
+Terminal=false
+Type=Application
+Categories=Utility;
+Keywords=GTK;
+StartupNotify=true
+DBusActivatable=true

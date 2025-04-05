@@ -1,0 +1,6 @@
+{
+    "recommendations": [
+        "bodil.blueprint-gtk",
+        "mesonbuild.mesonbuild"
+    ]
+}

@@ -1,0 +1,8 @@
+# List of source files containing translatable strings.
+# Please keep this file sorted alphabetically.
+data/com.dagimg.noty.desktop.in
+data/com.dagimg.noty.metainfo.xml.in
+data/com.dagimg.noty.gschema.xml
+src/main.py
+src/window.py
+src/window.blp

@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=com.dagimg.noty
+Exec=@bindir@/noty --gapplication-service
