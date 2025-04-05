@@ -2,13 +2,31 @@ using Gtk 4.0;
 using Adw 1;
 
 template $NotyWindow: Adw.ApplicationWindow {
-  title: _("Noty");
   default-width: 800;
   default-height: 600;
 
-  content: Adw.ToolbarView {
-    [top]
-    Adw.HeaderBar {
+  content: Box {
+    visible: true;
+    can-focus: true;
+    orientation: vertical;
+
+    HeaderBar header_bar {
+      visible: true;
+      can-focus: true;
+
+      title-widget: Entry {
+        visible: true;
+        can-focus: true;
+        margin-start: 24;
+        margin-end: 24;
+        hexpand: true;
+        primary-icon-name: "go-next-symbolic";
+        primary-icon-activatable: false;
+        primary-icon-sensitive: false;
+        secondary-icon-name: "entry-clear-symbolic";
+        secondary-icon-tooltip-text: _("Clear");
+      };
+
       [end]
       MenuButton {
         primary: true;
@@ -17,14 +35,6 @@ template $NotyWindow: Adw.ApplicationWindow {
         menu-model: primary_menu;
       }
     }
-
-    content: Label label {
-      label: _("Fire");
-
-      styles [
-        "title-1",
-      ]
-    };
   };
 }
 

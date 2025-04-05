@@ -20,11 +20,12 @@
 from gi.repository import Adw
 from gi.repository import Gtk
 
-@Gtk.Template(resource_path='/com/dagimg/noty/view/window.ui')
-class NotyWindow(Adw.ApplicationWindow):
-    __gtype_name__ = 'NotyWindow'
 
-    label = Gtk.Template.Child()
+@Gtk.Template(resource_path="/com/dagimg/noty/ui/window.ui")
+class NotyWindow(Adw.ApplicationWindow):
+    __gtype_name__ = "NotyWindow"
+
+    # label = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
