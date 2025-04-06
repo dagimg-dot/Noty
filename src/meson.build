@@ -6,6 +6,7 @@ blueprints = custom_target(
   'blueprints',
   input: files(
     'gtk/help-overlay.blp',
+    'ui/note_list_item.blp',
     'ui/window.blp',
   ),
   output: '.',
@@ -44,10 +45,29 @@ configure_file(
   install_mode: 'r-xr-xr-x',
 )
 
-noty_sources = [
+noty_sources_main = [
   '__init__.py',
   'main.py',
   'window.py',
 ]
 
-install_data(noty_sources, install_dir: moduledir)
+noty_sources_services = [
+  'services/conf_manager.py',
+  'services/file_manager.py',
+]
+
+noty_sources_models = [
+  'models/note.py',
+]
+
+noty_sources_widgets = [
+  'widgets/note_list_item.py',
+]
+
+install_data(noty_sources_main, install_dir: moduledir)
+
+install_data(noty_sources_services, install_dir: moduledir / 'services')
+
+install_data(noty_sources_models, install_dir: moduledir / 'models')
+
+install_data(noty_sources_widgets, install_dir: moduledir / 'widgets')
