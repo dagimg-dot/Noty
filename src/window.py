@@ -105,14 +105,7 @@ class NotyWindow(Adw.ApplicationWindow):
 
     def _on_search_focus_changed(self, widget, pspec):
         if widget.has_focus():
-            print("Search entry has focus")
-            text = widget.get_text()
-
-            print(f"Text: {text}")
-            widget.set_position(3)
             self.results_list_revealer.set_reveal_child(True)
-            if self.sort_model.get_n_items() > 0:
-                self.selection_model.set_selected(0)
         else:
             self.results_list_revealer.set_reveal_child(False)
 
@@ -129,13 +122,31 @@ class NotyWindow(Adw.ApplicationWindow):
             if selected_pos == 0:
                 self._search_entry_focus()
                 return True
+        elif keyval == Gdk.KEY_Down:
+            selected_pos = self.selection_model.get_selected()
+            n_items = self.sort_model.get_n_items()
+
+            if n_items > 0 and selected_pos == n_items - 1:
+                print(
+                    f"Reached end of list (pos {selected_pos}), moving focus to search entry"
+                )
+                self._search_entry_focus()
+                return True
         return False
 
     def _on_search_key_pressed(self, controller, keyval, keycode, state):
         if keyval == Gdk.KEY_Down:
-            print("Down key pressed")
-            self.notes_list_view.grab_focus()
-            return True
+            if self.sort_model.get_n_items() > 0:
+                self.selection_model.set_selected(0)
+                self.notes_list_view.grab_focus()
+                return True
+        elif keyval == Gdk.KEY_Up:
+            n_items = self.sort_model.get_n_items()
+            if n_items > 0:
+                print("Up key pressed in search, jumping to last item")
+                self.selection_model.set_selected(n_items - 1)
+                self.notes_list_view.grab_focus()
+                return True
         return False
 
     def _on_editor_key_pressed(self, controller, keyval, keycode, state):
