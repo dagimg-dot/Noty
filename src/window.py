@@ -3,7 +3,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, Gtk, Pango, GLib, Gdk  # type: ignore # noqa: E402
+from gi.repository import Adw, Gtk, Pango, Gdk  # type: ignore # noqa: E402
 from .services.file_manager import FileManager  # noqa: E402
 from .services.conf_manager import ConfManager  # noqa: E402
 from .models.note import Note  # noqa: E402
@@ -348,17 +348,16 @@ class NotyWindow(Adw.ApplicationWindow):
                 return i
         return None
 
-
     def on_close_request(self, *args):
         print("Window closing - saving files")
         if self.file_manager.currently_open_path:
             current_content = self.source_buffer.get_text(
                 self.source_buffer.get_start_iter(),
                 self.source_buffer.get_end_iter(),
-                True, 
+                True,
             )
             print(f"Saving file before exit: {self.file_manager.currently_open_path}")
             self.file_manager.save_note_content(
                 self.file_manager.currently_open_path, current_content
             )
-        return False 
+        return False
