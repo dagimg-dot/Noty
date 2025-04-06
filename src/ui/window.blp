@@ -2,8 +2,8 @@ using Gtk 4.0;
 using Adw 1;
 
 template $NotyWindow: Adw.ApplicationWindow {
-  default-width: 800;
-  default-height: 600;
+  default-width: 500;
+  default-height: 800;
 
   content: Box {
     visible: true;
@@ -14,25 +14,70 @@ template $NotyWindow: Adw.ApplicationWindow {
       visible: true;
       can-focus: true;
 
-      title-widget: Entry {
+      title-widget: SearchEntry search_entry {
         visible: true;
         can-focus: true;
         margin-start: 24;
         margin-end: 24;
         hexpand: true;
-        primary-icon-name: "go-next-symbolic";
-        primary-icon-activatable: false;
-        primary-icon-sensitive: false;
-        secondary-icon-name: "entry-clear-symbolic";
-        secondary-icon-tooltip-text: _("Clear");
+        placeholder-text: _("Search or create note...");
+        search-delay: 150;
       };
 
       [end]
-      MenuButton {
+      MenuButton menu_button {
         primary: true;
         icon-name: "open-menu-symbolic";
         tooltip-text: _("Main Menu");
         menu-model: primary_menu;
+      }
+    }
+
+    Revealer results_list_revealer {
+      reveal-child: false;
+      transition-type: slide_down;
+      transition-duration: 200;
+
+      Box {
+        orientation: vertical;
+
+        ScrolledWindow notes_list_container {
+          hexpand: true;
+          height-request: 200;
+          hscrollbar-policy: never;
+
+          ListView notes_list_view {
+            visible: true;
+
+            styles [
+              "list",
+            ]
+          }
+        }
+      }
+    }
+
+    Box editor_container {
+      orientation: vertical;
+      hexpand: true;
+      vexpand: true;
+
+      ScrolledWindow {
+        hexpand: true;
+        vexpand: true;
+        hscrollbar-policy: automatic;
+
+        TextView text_editor {
+          visible: true;
+          monospace: true;
+          hexpand: true;
+          vexpand: true;
+          wrap-mode: word_char;
+          top-margin: 12;
+          bottom-margin: 12;
+          left-margin: 12;
+          right-margin: 12;
+        }
       }
     }
   };

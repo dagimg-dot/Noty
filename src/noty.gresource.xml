@@ -3,8 +3,15 @@
   <gresource prefix="/com/dagimg/noty">
     <file preprocess="xml-stripblanks">ui/window.ui</file>
     <file preprocess="xml-stripblanks">gtk/help-overlay.ui</file>
+    <file preprocess="xml-stripblanks">ui/note_list_item.ui</file>
   </gresource>
   <gresource prefix="/com/dagimg/noty/icons/scalable/actions">
     <file preprocess="xml-stripblanks" alias="entry-clear-symbolic.svg">../data/icons/hicolor/scalable/actions/entry-clear-symbolic.svg</file>
+  </gresource>
+  <gresource prefix="/com/dagimg/noty/icons/scalable/apps">
+    <file preprocess="xml-stripblanks" alias="com.dagimg.noty.svg">../data/icons/hicolor/scalable/apps/com.dagimg.noty.svg</file>
+  </gresource>
+  <gresource prefix="/com/dagimg/noty/icons/symbolic/apps">
+    <file preprocess="xml-stripblanks" alias="com.dagimg.noty-symbolic.svg">../data/icons/hicolor/symbolic/apps/com.dagimg.noty-symbolic.svg</file>
   </gresource>
 </gresources>

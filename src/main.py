@@ -19,13 +19,13 @@
 
 import sys
 import gi
-from gettext import gettext as _
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Gio, Adw
-from .window import NotyWindow
+from gi.repository import Gio, Adw, GLib  # type: ignore # noqa: E402
+from .window import NotyWindow  # noqa: E402
+from .services.conf_manager import ConfManager  # noqa: E402
 
 
 class NotyApplication(Adw.Application):
@@ -35,6 +35,10 @@ class NotyApplication(Adw.Application):
         super().__init__(
             application_id="com.dagimg.noty", flags=Gio.ApplicationFlags.DEFAULT_FLAGS
         )
+        GLib.set_application_name("Noty")
+        GLib.set_prgname("com.dagimg.noty")
+        self.confman = ConfManager()
+
         self.create_action("quit", lambda *_: self.quit(), ["<primary>q"])
         self.create_action("about", self.on_about_action)
         self.create_action("preferences", self.on_preferences_action)
@@ -60,8 +64,6 @@ class NotyApplication(Adw.Application):
             developers=["JD"],
             copyright="© 2025 JD",
         )
-        # Translators: Replace "translator-credits" with your name/username, and optionally an email or URL.
-        about.set_translator_credits(_("translator-credits"))
         about.present(self.props.active_window)
 
     def on_preferences_action(self, widget, _):

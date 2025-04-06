@@ -1,3 +1,5 @@
 {
-    "svg.preview.background": "editor"
+    "svg.preview.background": "editor",
+    "makefile.configureOnOpen": false,
+    "mesonbuild.configureOnOpen": false,
 }
