@@ -43,8 +43,7 @@ class NotyWindow(Adw.ApplicationWindow):
 
         self._apply_editor_settings()
 
-        # Focus search entry after a short delay to let the window finish drawing
-        GLib.timeout_add_seconds(3, self._focus_search_entry)
+        self.connect("close-request", self.on_close_request)
 
     def _setup_list_view(self):
         model = self.file_manager.get_notes_model()
@@ -324,10 +323,17 @@ class NotyWindow(Adw.ApplicationWindow):
                 return i
         return None
 
-    def _hide_revealer_and_return_false(self):
-        self.results_list_revealer.set_reveal_child(False)
-        return False
 
-    def _focus_search_entry(self):
-        self.search_entry.grab_focus()
-        return False
+    def on_close_request(self, *args):
+        print("Window closing - saving files")
+        if self.file_manager.currently_open_path:
+            current_content = self.source_buffer.get_text(
+                self.source_buffer.get_start_iter(),
+                self.source_buffer.get_end_iter(),
+                True, 
+            )
+            print(f"Saving file before exit: {self.file_manager.currently_open_path}")
+            self.file_manager.save_note_content(
+                self.file_manager.currently_open_path, current_content
+            )
+        return False 
