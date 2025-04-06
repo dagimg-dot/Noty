@@ -3,10 +3,11 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, Gtk, Pango, Gdk  # type: ignore # noqa: E402
+from gi.repository import Adw, Gtk, Gdk  # type: ignore # noqa: E402
 from .services.file_manager import FileManager  # noqa: E402
 from .services.conf_manager import ConfManager  # noqa: E402
 from .models.note import Note  # noqa: E402
+from .widgets.note_list_item import NoteListItem  # noqa: E402
 
 
 @Gtk.Template(resource_path="/com/dagimg/noty/ui/window.ui")
@@ -107,6 +108,8 @@ class NotyWindow(Adw.ApplicationWindow):
             self.results_list_revealer.set_reveal_child(True)
             if self.sort_model.get_n_items() > 0:
                 self.selection_model.set_selected(0)
+        else:
+            self.results_list_revealer.set_reveal_child(False)
 
     def _on_list_key_pressed(self, controller, keyval, keycode, state):
         if keyval == Gdk.KEY_Escape:
@@ -120,17 +123,10 @@ class NotyWindow(Adw.ApplicationWindow):
         return False
 
     def _on_search_key_pressed(self, controller, keyval, keycode, state):
-        if keyval == Gdk.KEY_Escape:
-            if self.results_list_revealer.get_reveal_child():
-                self.results_list_revealer.set_reveal_child(False)
-                return True
-        elif keyval == Gdk.KEY_Down:
-            if (
-                self.results_list_revealer.get_reveal_child()
-                and self.sort_model.get_n_items() > 0
-            ):
-                self.notes_list_view.grab_focus()
-                return True
+        if keyval == Gdk.KEY_Down:
+            print("Down key pressed")
+            self.notes_list_view.grab_focus()
+            return True
         return False
 
     def _on_editor_key_pressed(self, controller, keyval, keycode, state):
@@ -142,39 +138,26 @@ class NotyWindow(Adw.ApplicationWindow):
     # --- ListView Factory Callbacks ---
 
     def _on_factory_setup(self, factory, list_item):
-        widget = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        widget.set_margin_top(4)
-        widget.set_margin_bottom(4)
-        widget.set_margin_start(8)
-        widget.set_margin_end(8)
-
-        label = Gtk.Label()
-        label.set_halign(Gtk.Align.START)
-        label.set_hexpand(True)
-        label.set_ellipsize(Pango.EllipsizeMode.END)
-        widget.append(label)
-
-        widget.label = label
-
-        list_item.set_child(widget)
+        note_list_item = NoteListItem()
+        list_item.set_child(note_list_item)
         print("Factory Setup (Widget created)")  # Debug
 
     def _on_factory_bind(self, factory, list_item):
-        widget = list_item.get_child()
+        note_list_item = list_item.get_child()
         note_object: Note = list_item.get_item()
 
-        if note_object and widget and hasattr(widget, "label"):
-            widget.label.set_text(note_object.get_name())
+        if note_object and isinstance(note_list_item, NoteListItem):
+            note_list_item.bind_to_note(note_object)
             print(f"Factory Bind: {note_object.get_name()}")  # Debug
         else:
             print("Factory Bind: Item/Widget type mismatch or missing")  # Debug
 
     def _on_factory_unbind(self, factory, list_item):
-        widget = list_item.get_child()
+        note_list_item = list_item.get_child()
         note_object = list_item.get_item()
 
-        if note_object and widget and hasattr(widget, "label"):
-            widget.label.set_text("")
+        if note_object and isinstance(note_list_item, NoteListItem):
+            note_list_item.unbind(note_object)
             print(f"Factory Unbind: {note_object.get_name()}")  # Debug
         else:
             print("Factory Unbind: Item/Widget type mismatch or missing")  # Debug
