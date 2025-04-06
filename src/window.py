@@ -13,11 +13,11 @@ from .models.note import Note  # noqa: E402
 class NotyWindow(Adw.ApplicationWindow):
     __gtype_name__ = "NotyWindow"
 
-    search_entry = Gtk.Template.Child()
-    results_list_revealer = Gtk.Template.Child()
-    notes_list_view = Gtk.Template.Child()
-    text_editor = Gtk.Template.Child()
-    notes_list_container = Gtk.Template.Child()
+    search_entry: Gtk.SearchEntry = Gtk.Template.Child()
+    results_list_revealer: Gtk.Revealer = Gtk.Template.Child()
+    notes_list_view: Gtk.ListView = Gtk.Template.Child()
+    text_editor: Gtk.TextView = Gtk.Template.Child()
+    notes_list_container: Gtk.Box = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -29,6 +29,7 @@ class NotyWindow(Adw.ApplicationWindow):
         self._setup_list_view()
         self._setup_text_view()
         self._connect_signals()
+        self._setup_key_controllers()
 
         self.text_editor.set_sensitive(False)  # No file open initially
 
@@ -65,10 +66,18 @@ class NotyWindow(Adw.ApplicationWindow):
 
         self.notes_list_view.connect("activate", self._on_note_activated)
 
-        # Add key event controller to the list view for keyboard navigation
-        self.list_key_controller = Gtk.EventControllerKey.new()
-        self.list_key_controller.connect("key-pressed", self._on_list_key_pressed)
-        self.notes_list_container.add_controller(self.list_key_controller)
+    def _setup_key_controllers(self):
+        list_key_controller = Gtk.EventControllerKey.new()
+        list_key_controller.connect("key-pressed", self._on_list_key_pressed)
+        self.notes_list_view.add_controller(list_key_controller)
+
+        search_key_controller = Gtk.EventControllerKey.new()
+        search_key_controller.connect("key-pressed", self._on_search_key_pressed)
+        self.search_entry.add_controller(search_key_controller)
+
+        editor_key_controller = Gtk.EventControllerKey.new()
+        editor_key_controller.connect("key-pressed", self._on_editor_key_pressed)
+        self.text_editor.add_controller(editor_key_controller)
 
     def _setup_text_view(self):
         self.source_buffer = Gtk.TextBuffer()
@@ -81,7 +90,10 @@ class NotyWindow(Adw.ApplicationWindow):
         self.search_entry.connect("changed", self._on_search_changed)
         self.search_entry.connect("activate", self._on_search_activate)
         self.search_entry.connect("notify::has-focus", self._on_search_focus_changed)
+
+        self.text_editor.connect("notify::has-focus", self._on_editor_focus_changed)
         self.file_manager.connect("note_changed", self._on_external_note_change)
+
         self.confman.connect("dark_mode_changed", self._apply_editor_settings)
         self.confman.connect("editor_color_scheme_changed", self._apply_editor_settings)
         self.confman.connect("font_size_changed", self._apply_editor_settings)
@@ -91,13 +103,38 @@ class NotyWindow(Adw.ApplicationWindow):
         self.confman.connect("sorting_method_changed", self._on_sorting_method_changed)
 
     def _on_search_focus_changed(self, widget, pspec):
-        has_focus = widget.has_focus()
-        if has_focus:
+        if widget.has_focus():
             self.results_list_revealer.set_reveal_child(True)
+            if self.sort_model.get_n_items() > 0:
+                self.selection_model.set_selected(0)
 
     def _on_list_key_pressed(self, controller, keyval, keycode, state):
         if keyval == Gdk.KEY_Escape:
-            self.results_list_revealer.set_reveal_child(False)
+            self.search_entry.grab_focus()
+            return True
+        elif keyval == Gdk.KEY_Up:
+            selected_pos = self.selection_model.get_selected()
+            if selected_pos == 0:
+                self.search_entry.grab_focus()
+                return True
+        return False
+
+    def _on_search_key_pressed(self, controller, keyval, keycode, state):
+        if keyval == Gdk.KEY_Escape:
+            if self.results_list_revealer.get_reveal_child():
+                self.results_list_revealer.set_reveal_child(False)
+                return True
+        elif keyval == Gdk.KEY_Down:
+            if (
+                self.results_list_revealer.get_reveal_child()
+                and self.sort_model.get_n_items() > 0
+            ):
+                self.notes_list_view.grab_focus()
+                return True
+        return False
+
+    def _on_editor_key_pressed(self, controller, keyval, keycode, state):
+        if keyval == Gdk.KEY_Escape:
             self.search_entry.grab_focus()
             return True
         return False
@@ -124,7 +161,7 @@ class NotyWindow(Adw.ApplicationWindow):
 
     def _on_factory_bind(self, factory, list_item):
         widget = list_item.get_child()
-        note_object = list_item.get_item()
+        note_object: Note = list_item.get_item()
 
         if note_object and widget and hasattr(widget, "label"):
             widget.label.set_text(note_object.get_name())
@@ -147,23 +184,18 @@ class NotyWindow(Adw.ApplicationWindow):
     def _on_note_selected(self, selection_model, *args):
         selected_note = selection_model.get_selected_item()
         if isinstance(selected_note, Note):
-            print(f"Note Selected: {selected_note.get_name()}")  # Debug
             activate_on_select = self.confman.conf.get("activate_row_on_select", False)
             if activate_on_select:
                 self._load_note_into_editor(selected_note)
-                self.results_list_revealer.set_reveal_child(False)
+                self.text_editor.grab_focus()
         else:
-            print("Selection Cleared or Invalid")  # Debug
+            print("Selection Cleared or Invalid")
 
     def _on_note_activated(self, list_view, position):
         model = list_view.get_model()
         note_object = model.get_item(position)
         if isinstance(note_object, Note):
-            print(f"Note Activated: {note_object.get_name()}")  # Debug
             self._load_note_into_editor(note_object)
-
-            self.results_list_revealer.set_reveal_child(False)
-
             self.text_editor.grab_focus()
 
     def _load_note_into_editor(self, note_object):
@@ -216,8 +248,6 @@ class NotyWindow(Adw.ApplicationWindow):
         if not name_to_open_or_create:
             return
 
-        print(f"Search Activate: {name_to_open_or_create}")  # Debug
-
         target_note = None
         model = self.file_manager.get_notes_model()
         for i in range(model.get_n_items()):
@@ -228,21 +258,11 @@ class NotyWindow(Adw.ApplicationWindow):
 
         if target_note:
             self._load_note_into_editor(target_note)
-            self.results_list_revealer.set_reveal_child(True)
-
-            position = self._find_position_by_item(target_note)
-            if position is not None:
-                self.selection_model.set_selected(position)
-
-            GLib.timeout_add(500, lambda: self._hide_revealer_and_return_false())
-
-            self.text_editor.grab_focus()  # Focus editor
+            self.text_editor.grab_focus()
         else:
-            print(f"Creating new note: {name_to_open_or_create}")  # Debug
             new_note = self.file_manager.create_note(name_to_open_or_create)
             if new_note:
                 self._load_note_into_editor(new_note)
-                self.results_list_revealer.set_reveal_child(False)
                 self.text_editor.grab_focus()
 
     def _on_buffer_changed(self, text_buffer):
@@ -260,6 +280,11 @@ class NotyWindow(Adw.ApplicationWindow):
                 self.file_manager.save_note_content(
                     self.file_manager.currently_open_path, content
                 )
+            self.results_list_revealer.set_reveal_child(True)
+        else:
+            print("Editor Focus Gained - Hiding Revealer")  # Debug
+            self.results_list_revealer.set_reveal_child(False)
+
         return False  # Allow event propagation
 
     def _on_notes_reloaded(self, file_manager):
