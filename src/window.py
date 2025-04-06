@@ -88,7 +88,7 @@ class NotyWindow(Adw.ApplicationWindow):
         self.text_editor.connect("notify::has-focus", self._on_editor_focus_changed)
 
     def _connect_signals(self):
-        self.search_entry.connect("changed", self._on_search_changed)
+        self.search_entry.connect("search-changed", self._on_search_changed)
         self.search_entry.connect("activate", self._on_search_activate)
         self.search_entry.connect("notify::has-focus", self._on_search_focus_changed)
 
@@ -105,20 +105,29 @@ class NotyWindow(Adw.ApplicationWindow):
 
     def _on_search_focus_changed(self, widget, pspec):
         if widget.has_focus():
+            print("Search entry has focus")
+            text = widget.get_text()
+
+            print(f"Text: {text}")
+            widget.set_position(3)
             self.results_list_revealer.set_reveal_child(True)
             if self.sort_model.get_n_items() > 0:
                 self.selection_model.set_selected(0)
         else:
             self.results_list_revealer.set_reveal_child(False)
 
+    def _search_entry_focus(self):
+        self.search_entry.grab_focus()
+        self.search_entry.select_region(0, -1)
+
     def _on_list_key_pressed(self, controller, keyval, keycode, state):
         if keyval == Gdk.KEY_Escape:
-            self.search_entry.grab_focus()
+            self._search_entry_focus()
             return True
         elif keyval == Gdk.KEY_Up:
             selected_pos = self.selection_model.get_selected()
             if selected_pos == 0:
-                self.search_entry.grab_focus()
+                self._search_entry_focus()
                 return True
         return False
 
@@ -131,7 +140,7 @@ class NotyWindow(Adw.ApplicationWindow):
 
     def _on_editor_key_pressed(self, controller, keyval, keycode, state):
         if keyval == Gdk.KEY_Escape:
-            self.search_entry.grab_focus()
+            self._search_entry_focus()
             return True
         return False
 
