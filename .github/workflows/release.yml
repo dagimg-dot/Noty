@@ -1,0 +1,53 @@
+name: Noty flatpak bundle release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  flatpak-builder:
+    name: "Flatpak Builder"
+    runs-on: ubuntu-latest
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:gnome-47
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      # Build flatpak
+      - name: Build Flatpak
+        run: |
+          flatpak-builder --repo=repo --force-clean flatpak_app com.dagimg.noty.json
+          flatpak build-bundle repo noty-${{ steps.get_version.outputs.VERSION }}.flatpak com.dagimg.noty
+          ls -la
+      - name: Upload Flatpak bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: noty-${{ steps.get_version.outputs.VERSION }}.flatpak
+          path: noty-${{ steps.get_version.outputs.VERSION }}.flatpak
+          if-no-files-found: error
+          
+  release:
+    name: "Create Release"
+    needs: flatpak-builder
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Get version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      - name: Download Flatpak bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: noty-${{ steps.get_version.outputs.VERSION }}.flatpak
+      - name: List files
+        run: ls -la
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: noty-${{ steps.get_version.outputs.VERSION }}.flatpak
+          generate_release_notes: true

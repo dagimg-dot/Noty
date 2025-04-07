@@ -1,3 +1,3 @@
 # noty
 
-A description of this project.
+A minimal keyboard driven note taking application.

@@ -1,7 +1,7 @@
 {
   "id": "com.dagimg.noty",
   "runtime": "org.gnome.Platform",
-  "runtime-version": "master",
+  "runtime-version": "47",
   "sdk": "org.gnome.Sdk",
   "command": "noty",
   "finish-args": [
@@ -24,13 +24,25 @@
   ],
   "modules": [
     {
+      "name": "blueprint-compiler",
+      "buildsystem": "meson",
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://gitlab.gnome.org/jwestman/blueprint-compiler.git",
+          "tag": "v0.16.0"
+        }
+      ]
+    },
+    {
       "name": "noty",
       "builddir": true,
       "buildsystem": "meson",
       "sources": [
         {
           "type": "git",
-          "url": "file:///home/jd/JDrive/Projects/PYTHON"
+          "url": "https://github.com/dagimg-dot/noty.git",
+          "tag": "v0.1.0"
         }
       ],
       "config-opts": ["--libdir=lib"]
