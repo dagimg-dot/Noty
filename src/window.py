@@ -363,4 +363,5 @@ class NotyWindow(Adw.ApplicationWindow):
             self.file_manager.save_note_content(
                 self.file_manager.currently_open_path, current_content
             )
-        return False
+        self.hide()
+        return True 

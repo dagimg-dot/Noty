@@ -38,8 +38,9 @@ class NotyApplication(Adw.Application):
         GLib.set_application_name("Noty")
         GLib.set_prgname("com.dagimg.noty")
         self.confman = ConfManager()
+        self.win = None
 
-        self.create_action("quit", lambda *_: self.quit(), ["<primary>q"])
+        self.create_action("quit", self._quit_action, ["<primary>q"])
         self.create_action("about", self.on_about_action)
         self.create_action("preferences", self.on_preferences_action)
 
@@ -49,10 +50,10 @@ class NotyApplication(Adw.Application):
         We raise the application's main window, creating it if
         necessary.
         """
-        win = self.props.active_window
-        if not win:
-            win = NotyWindow(application=self)
-        win.present()
+        if not self.win:
+            self.win = NotyWindow(application=self)
+
+        self.win.present()
 
     def on_about_action(self, *args):
         """Callback for the app.about action."""
@@ -69,6 +70,25 @@ class NotyApplication(Adw.Application):
     def on_preferences_action(self, widget, _):
         """Callback for the app.preferences action."""
         print("app.preferences action activated")
+
+    def _quit_action(self, *args):
+        if self.win and self.win.file_manager.currently_open_path:
+            try:
+                buffer = self.win.source_buffer
+                current_content = buffer.get_text(
+                    buffer.get_start_iter(),
+                    buffer.get_end_iter(),
+                    True,
+                )
+                print(
+                    f"Saving file before quit: {self.win.file_manager.currently_open_path}"
+                )
+                self.win.file_manager.save_note_content(
+                    self.win.file_manager.currently_open_path, current_content
+                )
+            except Exception as e:
+                print(f"Error saving file before quit: {e}")
+        self.quit()
 
     def create_action(self, name, callback, shortcuts=None):
         """Add an application action.
