@@ -2,6 +2,9 @@ pkgdatadir = get_option('prefix') / get_option('datadir') / meson.project_name()
 moduledir = pkgdatadir / 'noty'
 gnome = import('gnome')
 
+# Get application ID from options
+application_id = get_option('application_id')
+
 blueprints = custom_target(
   'blueprints',
   input: files(
@@ -35,6 +38,7 @@ conf.set('PYTHON', python.find_installation('python3').full_path())
 conf.set('VERSION', meson.project_version())
 conf.set('localedir', get_option('prefix') / get_option('localedir'))
 conf.set('pkgdatadir', pkgdatadir)
+conf.set('application_id', application_id)
 
 configure_file(
   input: 'noty.in',
@@ -45,9 +49,23 @@ configure_file(
   install_mode: 'r-xr-xr-x',
 )
 
+configure_file(
+  input: '__init__.py',
+  output: '__init__.py',
+  configuration: conf,
+  install: true,
+  install_dir: moduledir,
+)
+
+configure_file(
+  input: 'main.py',
+  output: 'main.py',
+  configuration: conf,
+  install: true,
+  install_dir: moduledir,
+)
+
 noty_sources_main = [
-  '__init__.py',
-  'main.py',
   'window.py',
 ]
 

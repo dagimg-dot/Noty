@@ -36,9 +36,22 @@ test('Validate schema file',
 
 service_conf = configuration_data()
 service_conf.set('bindir', get_option('prefix') / get_option('bindir'))
+
+# Get application_id from parent scope
+application_id = get_option('application_id')
+
+# Use the appropriate service file based on application_id
+if application_id == 'com.dagimg.dev.noty'
+  service_input = 'com.dagimg.dev.noty.service.in'
+  service_output = 'com.dagimg.dev.noty.service'
+else
+  service_input = 'com.dagimg.noty.service.in'
+  service_output = 'com.dagimg.noty.service'
+endif
+
 configure_file(
-  input: 'com.dagimg.noty.service.in',
-  output: 'com.dagimg.noty.service',
+  input: service_input,
+  output: service_output,
   configuration: service_conf,
   install_dir: get_option('datadir') / 'dbus-1' / 'services'
 )

@@ -1,0 +1,1 @@
+option('application_id', type: 'string', value: 'com.dagimg.noty', description: 'Application ID for the app, can be changed for development builds') 

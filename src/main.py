@@ -27,16 +27,19 @@ from gi.repository import Gio, Adw, GLib  # type: ignore # noqa: E402
 from .window import NotyWindow  # noqa: E402
 from .services.conf_manager import ConfManager  # noqa: E402
 
+# Application ID set by Meson during build
+APPLICATION_ID = '@application_id@'
+
 
 class NotyApplication(Adw.Application):
     """The main application singleton class."""
 
     def __init__(self):
         super().__init__(
-            application_id="com.dagimg.noty", flags=Gio.ApplicationFlags.DEFAULT_FLAGS
+            application_id=APPLICATION_ID, flags=Gio.ApplicationFlags.DEFAULT_FLAGS
         )
         GLib.set_application_name("Noty")
-        GLib.set_prgname("com.dagimg.noty")
+        GLib.set_prgname(APPLICATION_ID)
         self.confman = ConfManager()
         self.win = None
 
@@ -59,7 +62,7 @@ class NotyApplication(Adw.Application):
         """Callback for the app.about action."""
         about = Adw.AboutDialog(
             application_name="noty",
-            application_icon="com.dagimg.noty",
+            application_icon=APPLICATION_ID,
             developer_name="JD",
             version="0.1.0",
             developers=["JD"],

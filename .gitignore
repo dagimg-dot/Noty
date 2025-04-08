@@ -2,3 +2,4 @@ build/
 subprojects/
 *.ui
 .flatpak-builder/
+dist/

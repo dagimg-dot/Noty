@@ -6,6 +6,14 @@ from os import system, makedirs
 import json
 from gi.repository import GObject, GLib  # type: ignore
 
+# Import the application ID from main module
+try:
+    # Get application ID from main module
+    from .. import APPLICATION_ID
+except ImportError:
+    # Fallback to default if not available
+    APPLICATION_ID = "com.dagimg.noty"
+
 documents_dir = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOCUMENTS)
 if not documents_dir:
     system("xdg-user-dirs-update")
@@ -65,9 +73,9 @@ class ConfManager(metaclass=Singleton):
         )
 
         if self.is_flatpak:
-            self.path = Path(f"{Env.get('XDG_CONFIG_HOME')}/com.dagimg.noty.json")
+            self.path = Path(f"{Env.get('XDG_CONFIG_HOME')}/{APPLICATION_ID}.json")
         else:
-            self.path = Path(f"{Env.get('HOME')}/.config/com.dagimg.noty.json")
+            self.path = Path(f"{Env.get('HOME')}/.config/{APPLICATION_ID}.json")
 
         self.conf = None
 
