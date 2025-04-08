@@ -8,6 +8,7 @@ from ..services.file_manager import FileManager  # noqa: E402
 from ..services.conf_manager import ConfManager  # noqa: E402
 from ..models.note import Note  # noqa: E402
 from ..widgets.note_list_item import NoteListItem  # noqa: E402
+from ..utils.constants import COLOR_SCHEMES  # noqa: E402
 
 
 @Gtk.Template(resource_path="/com/dagimg/noty/ui/window.ui")
@@ -95,7 +96,7 @@ class NotyWindow(Adw.ApplicationWindow):
         self.text_editor.connect("notify::has-focus", self._on_editor_focus_changed)
         self.file_manager.connect("note_changed", self._on_external_note_change)
 
-        self.confman.connect("dark_mode_changed", self._apply_editor_settings)
+        self.confman.connect("theme_changed", self._apply_editor_settings)
         self.confman.connect("editor_color_scheme_changed", self._apply_editor_settings)
         self.confman.connect("font_size_changed", self._apply_editor_settings)
         self.confman.connect(
@@ -328,17 +329,46 @@ class NotyWindow(Adw.ApplicationWindow):
 
     def _on_sorting_method_changed(self, *args):
         print("Sorting Method Changed - Forcing Re-Sort")  # Debug
+        # apply the _sort_notes function to the sort_model
         if hasattr(self, "sort_model") and self.sort_model:
-            self.sort_model.changed()
+            self.sort_model.set_sorter(self._sort_notes)
 
     def _apply_editor_settings(self, *args):
         print("Applying editor settings (TextView)")  # Debug
 
         font_size = self.confman.conf.get("font_size", 12)
+        color_scheme = self.confman.conf.get("editor_color_scheme", "default")
+
+        # Check if we need to invert colors for dark mode
+        style_manager = Adw.StyleManager.get_default()
+        is_dark = style_manager.get_color_scheme() in [
+            Adw.ColorScheme.PREFER_DARK,
+            Adw.ColorScheme.FORCE_DARK,
+        ]
+
+        # Set default scheme if the requested one doesn't exist
+        if color_scheme not in COLOR_SCHEMES:
+            color_scheme = "default"
+
+        scheme_colors = COLOR_SCHEMES[color_scheme]
+
+        # For default scheme, adapt to light/dark mode
+        if color_scheme == "default" and is_dark:
+            scheme_colors = {
+                "text": "#ffffff",
+                "background": "#2d2d2d",
+                "selection": "rgba(120, 120, 120, 0.4)",
+            }
+
         css_provider = Gtk.CssProvider()
         css = f"""
         textview {{
             font-size: {font_size}pt;
+            color: {scheme_colors["text"]};
+            background-color: {scheme_colors["background"]};
+        }}
+        textview text selection {{
+            background-color: {scheme_colors["selection"]};
         }}
         """
         css_provider.load_from_data(css.encode())
@@ -365,4 +395,4 @@ class NotyWindow(Adw.ApplicationWindow):
                 self.file_manager.currently_open_path, current_content
             )
         self.hide()
-        return True 
+        return True

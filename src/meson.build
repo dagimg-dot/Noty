@@ -84,6 +84,10 @@ noty_sources_widgets = [
   'widgets/note_list_item.py',
 ]
 
+noty_sources_utils = [
+  'utils/constants.py',
+]
+
 install_data(noty_sources_main, install_dir: moduledir / 'windows')
 
 install_data(noty_sources_services, install_dir: moduledir / 'services')
@@ -91,3 +95,5 @@ install_data(noty_sources_services, install_dir: moduledir / 'services')
 install_data(noty_sources_models, install_dir: moduledir / 'models')
 
 install_data(noty_sources_widgets, install_dir: moduledir / 'widgets')
+
+install_data(noty_sources_utils, install_dir: moduledir / 'utils')

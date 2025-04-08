@@ -42,6 +42,8 @@ class NotyApplication(Adw.Application):
         self.confman = ConfManager()
         self.win = None
 
+        self._initialize_theme()
+
         self.create_action("quit", self._quit_action, ["<primary>q"])
         self.create_action("about", self.on_about_action)
         self.create_action("preferences", self.on_preferences_action, ["<primary>p"])
@@ -109,6 +111,27 @@ class NotyApplication(Adw.Application):
         self.add_action(action)
         if shortcuts:
             self.set_accels_for_action(f"app.{name}", shortcuts)
+
+    def _initialize_theme(self):
+        style_manager = Adw.StyleManager.get_default()
+        theme = self.confman.conf.get("theme", "system")
+        
+        # Current system theme state
+        is_dark = style_manager.get_color_scheme() in [
+            Adw.ColorScheme.PREFER_DARK,
+            Adw.ColorScheme.FORCE_DARK,
+        ]
+        
+        # Apply the theme
+        theme_dict = {
+            "light": Adw.ColorScheme.FORCE_LIGHT,
+            "dark": Adw.ColorScheme.FORCE_DARK,
+            "system": Adw.ColorScheme.PREFER_DARK if is_dark else Adw.ColorScheme.PREFER_LIGHT,
+        }
+        
+        if theme in theme_dict:
+            style_manager.set_color_scheme(theme_dict[theme])
+            print(f"Applied theme: {theme}")
 
 
 def main(version):

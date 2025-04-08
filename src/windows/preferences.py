@@ -7,6 +7,7 @@ gi.require_version("Adw", "1")
 
 from gi.repository import Gtk, Adw, Gio  # noqa: E402 # type: ignore
 from ..services.conf_manager import ConfManager  # noqa: E402
+from ..utils.constants import SORTING_METHODS, COLOR_SCHEMES, THEME  # noqa: E402
 
 
 @Gtk.Template(resource_path="/com/dagimg/noty/ui/preferences.ui")
@@ -24,7 +25,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
     switch_activate_row_on_select: Gtk.Switch = Gtk.Template.Child()
 
     # Appearance page widgets
-    switch_dark_mode: Gtk.Switch = Gtk.Template.Child()
+    dropdown_theme: Gtk.DropDown = Gtk.Template.Child()
     dropdown_color_scheme: Gtk.DropDown = Gtk.Template.Child()
     switch_markdown_syntax: Gtk.Switch = Gtk.Template.Child()
     spin_button_font_size: Gtk.SpinButton = Gtk.Template.Child()
@@ -32,6 +33,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.confman = ConfManager()
+        self.style_manager = Adw.StyleManager.get_default()
 
         self.btn_notes_dir.connect("clicked", self.on_notes_dir_clicked)
         self.btn_notes_dir_reset.connect("clicked", self.on_notes_dir_reset)
@@ -48,7 +50,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
             "notify::active", self.on_activate_row_on_select_changed
         )
 
-        self.switch_dark_mode.connect("notify::active", self.on_dark_mode_changed)
+        self.dropdown_theme.connect("notify::selected", self.on_theme_changed)
         self.dropdown_color_scheme.connect(
             "notify::selected", self.on_color_scheme_changed
         )
@@ -69,25 +71,20 @@ class PreferencesDialog(Adw.PreferencesDialog):
             self.confman.conf["use_file_extension"]
         )
 
-        sorting_methods = {"name": 0, "date_modified": 1, "date_created": 2}
         current_sorting = self.confman.conf["sorting_method"]
-        if current_sorting in sorting_methods:
-            self.dropdown_sorting_method.set_selected(sorting_methods[current_sorting])
+        if current_sorting in SORTING_METHODS:
+            self.dropdown_sorting_method.set_selected(SORTING_METHODS[current_sorting])
 
         self.switch_activate_row_on_select.set_active(
             self.confman.conf["activate_row_on_select"]
         )
 
-        self.switch_dark_mode.set_active(self.confman.conf["dark_mode"])
+        current_theme = self.confman.conf["theme"]
+        self.dropdown_theme.set_selected(THEME[current_theme])
 
-        color_schemes = {
-            "default": 0,
-            "solarized-light": 1,
-            "solarized-dark": 2,
-            "monokai": 3,
-            "cobalt": 4,
-        }
         current_scheme = self.confman.conf["editor_color_scheme"]
+        color_schemes = {k: v for v, k in enumerate(COLOR_SCHEMES)}
+
         if current_scheme in color_schemes:
             self.dropdown_color_scheme.set_selected(color_schemes[current_scheme])
 
@@ -145,7 +142,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
 
     def on_sorting_method_changed(self, dropdown, param):
         selected = dropdown.get_selected()
-        methods = ["name", "date_modified", "date_created"]
+        methods = list(SORTING_METHODS.keys())
         if 0 <= selected < len(methods):
             self.confman.conf["sorting_method"] = methods[selected]
             self.confman.save_conf()
@@ -156,11 +153,28 @@ class PreferencesDialog(Adw.PreferencesDialog):
         self.confman.conf["activate_row_on_select"] = active
         self.confman.save_conf()
 
-    def on_dark_mode_changed(self, switch, param):
-        active = switch.get_active()
-        self.confman.conf["dark_mode"] = active
-        self.confman.save_conf()
-        self.confman.emit("dark_mode_changed", "dark" if active else "light")
+    def on_theme_changed(self, dropdown, param):
+        selected = dropdown.get_selected()
+        themes = list(THEME.keys())
+        if 0 <= selected < len(themes):
+            self.confman.conf["theme"] = themes[selected]
+            self.confman.save_conf()
+
+            is_dark = self.style_manager.get_color_scheme() in [
+                Adw.ColorScheme.PREFER_DARK,
+                Adw.ColorScheme.FORCE_DARK,
+            ]
+
+            theme_dict = {
+                "light": Adw.ColorScheme.FORCE_LIGHT,
+                "dark": Adw.ColorScheme.FORCE_DARK,
+                "system": Adw.ColorScheme.PREFER_DARK
+                if is_dark
+                else Adw.ColorScheme.PREFER_LIGHT,
+            }
+
+            self.style_manager.set_color_scheme(theme_dict[themes[selected]])
+            self.confman.emit("theme_changed", themes[selected])
 
     def on_color_scheme_changed(self, dropdown, param):
         selected = dropdown.get_selected()

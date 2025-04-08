@@ -22,7 +22,7 @@ class ConfManagerSignaler(GObject.Object):
             None,
             (str,),
         ),
-        "dark_mode_changed": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
+        "theme_changed": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
         "sorting_method_changed": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
         "editor_color_scheme_changed": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
         "font_size_changed": (GObject.SignalFlags.RUN_FIRST, None, (int,)),
@@ -44,7 +44,7 @@ class ConfManager(metaclass=Singleton):
         "windowsize": {"width": 350, "height": 650},
         "notes_dir": "{0}/{1}".format(documents_dir, _("Noties")),
         "show_markdown_syntax_highlighting": False,
-        "dark_mode": False,
+        "theme": "system",
         "sorting_method": "name",
         "activate_row_on_select": False,
         "use_file_extension": False,
@@ -98,6 +98,13 @@ class ConfManager(metaclass=Singleton):
                         self.conf[k] = ConfManager.BASE_SCHEMA[k].copy()
                     else:
                         self.conf[k] = ConfManager.BASE_SCHEMA[k]
+                        
+            # Handle transition from dark_mode to theme
+            if "dark_mode" in self.conf and "theme" not in self.conf:
+                self.conf["theme"] = "dark" if self.conf["dark_mode"] else "light"
+                del self.conf["dark_mode"]
+                self.save_conf()
+                
         except Exception:
             self.conf = ConfManager.BASE_SCHEMA.copy()
             self.save_conf()
