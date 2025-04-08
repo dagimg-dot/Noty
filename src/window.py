@@ -287,6 +287,7 @@ class NotyWindow(Adw.ApplicationWindow):
         else:
             print("Editor Focus Gained - Hiding Revealer")  # Debug
             self.results_list_revealer.set_reveal_child(False)
+            self.source_buffer.place_cursor(self.source_buffer.get_end_iter())
 
         return False  # Allow event propagation
 
