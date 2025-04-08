@@ -26,9 +26,7 @@ gi.require_version("Adw", "1")
 from gi.repository import Gio, Adw, GLib  # type: ignore # noqa: E402
 from .window import NotyWindow  # noqa: E402
 from .services.conf_manager import ConfManager  # noqa: E402
-
-# Application ID set by Meson during build
-APPLICATION_ID = '@application_id@'
+from . import APPLICATION_ID  # noqa: E402
 
 
 class NotyApplication(Adw.Application):

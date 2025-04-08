@@ -1,18 +1,10 @@
 from gettext import gettext as _
 from pathlib import Path
 from os.path import isfile, isdir
-from os import environ as Env
-from os import system, makedirs
+from os import environ as Env, system, makedirs
 import json
 from gi.repository import GObject, GLib  # type: ignore
-
-# Import the application ID from main module
-try:
-    # Get application ID from main module
-    from .. import APPLICATION_ID
-except ImportError:
-    # Fallback to default if not available
-    APPLICATION_ID = "com.dagimg.noty"
+from .. import APPLICATION_ID
 
 documents_dir = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOCUMENTS)
 if not documents_dir:
