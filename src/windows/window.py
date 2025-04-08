@@ -29,7 +29,7 @@ class NotyWindow(Adw.ApplicationWindow):
 
         self.confman = ConfManager()
         self.file_manager = FileManager()
-        
+
         # Flag to track selection method (keyboard vs mouse)
         self._selection_from_keyboard = False
 
@@ -75,7 +75,7 @@ class NotyWindow(Adw.ApplicationWindow):
         self.notes_list_view.set_factory(factory)
 
         self.notes_list_view.connect("activate", self._on_note_activated)
-        
+
         # Add click controller to detect mouse selection
         click_controller = Gtk.GestureClick.new()
         click_controller.connect("pressed", self._on_listview_click)
@@ -130,11 +130,23 @@ class NotyWindow(Adw.ApplicationWindow):
     def _on_listview_click(self, gesture, n_press, x, y):
         """Track that the selection was made by mouse"""
         self._selection_from_keyboard = False
-        
+
     def _on_list_key_pressed(self, controller, keyval, keycode, state):
-        if keyval in (Gdk.KEY_Up, Gdk.KEY_Down, Gdk.KEY_Home, Gdk.KEY_End, Gdk.KEY_Page_Up, Gdk.KEY_Page_Down):
+        if keyval in (
+            Gdk.KEY_Up,
+            Gdk.KEY_Down,
+            Gdk.KEY_Home,
+            Gdk.KEY_End,
+            Gdk.KEY_Page_Up,
+            Gdk.KEY_Page_Down,
+        ):
             self._selection_from_keyboard = True
-            
+
+        # Check if there are items in the list first
+        n_items = self.sort_model.get_n_items()
+        if n_items == 0:
+            return False
+
         if keyval == Gdk.KEY_Escape:
             self._search_entry_focus()
             return True
@@ -145,33 +157,28 @@ class NotyWindow(Adw.ApplicationWindow):
                 return True
         elif keyval == Gdk.KEY_Down:
             selected_pos = self.selection_model.get_selected()
-            n_items = self.sort_model.get_n_items()
 
             if n_items > 0 and selected_pos == n_items - 1:
-                print(
-                    f"Reached end of list (pos {selected_pos}), moving focus to search entry"
-                )
                 self._search_entry_focus()
                 return True
         return False
 
     def _on_search_key_pressed(self, controller, keyval, keycode, state):
         if keyval in (Gdk.KEY_Up, Gdk.KEY_Down):
-            # Mark that the next selection will be from keyboard
             self._selection_from_keyboard = True
-            
+
+        n_items = self.sort_model.get_n_items()
+        if n_items == 0:
+            return False
+
         if keyval == Gdk.KEY_Down:
-            if self.sort_model.get_n_items() > 0:
-                self.selection_model.set_selected(0)
-                self.notes_list_view.grab_focus()
-                return True
+            self.notes_list_view.grab_focus()
+            self.selection_model.set_selected(0)
+            return True
         elif keyval == Gdk.KEY_Up:
-            n_items = self.sort_model.get_n_items()
-            if n_items > 0:
-                print("Up key pressed in search, jumping to last item")
-                self.selection_model.set_selected(n_items - 1)
-                self.notes_list_view.grab_focus()
-                return True
+            self.notes_list_view.grab_focus()
+            self.selection_model.set_selected(n_items - 1)
+            return True
         return False
 
     def _on_editor_key_pressed(self, controller, keyval, keycode, state):
@@ -213,13 +220,12 @@ class NotyWindow(Adw.ApplicationWindow):
         selected_note = selection_model.get_selected_item()
         if isinstance(selected_note, Note):
             activate_on_select = self.confman.conf.get("activate_row_on_select", False)
-            
+
             # Only apply activate_on_select for mouse selection, not keyboard navigation
             if activate_on_select and not self._selection_from_keyboard:
                 self._load_note_into_editor(selected_note)
                 self.text_editor.grab_focus()
-            
-            # Reset the flag after processing
+
             self._selection_from_keyboard = False
         else:
             print("Selection Cleared or Invalid")
@@ -318,10 +324,12 @@ class NotyWindow(Adw.ApplicationWindow):
             print("Editor Focus Gained - Hiding Revealer")  # Debug
             self.results_list_revealer.set_reveal_child(False)
             self.source_buffer.place_cursor(self.source_buffer.get_end_iter())
-            
+
             # Check for external changes when editor gains focus
             if self.file_manager.currently_open_path:
-                self.file_manager.check_external_changes(self.file_manager.currently_open_path)
+                self.file_manager.check_external_changes(
+                    self.file_manager.currently_open_path
+                )
 
         return False  # Allow event propagation
 
