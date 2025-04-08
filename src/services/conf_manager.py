@@ -42,7 +42,7 @@ class Singleton(type):
 class ConfManager(metaclass=Singleton):
     BASE_SCHEMA = {
         "windowsize": {"width": 350, "height": 650},
-        "notes_dir": "{0}/{1}".format(documents_dir, _("JDNotes")),
+        "notes_dir": "{0}/{1}".format(documents_dir, _("Noties")),
         "show_markdown_syntax_highlighting": False,
         "dark_mode": False,
         "sorting_method": "name",

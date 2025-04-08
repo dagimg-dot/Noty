@@ -1,6 +1,6 @@
 # main.py
 #
-# Copyright 2025 JD
+# Copyright 2025 Dagim G. Astatkie
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,8 +25,9 @@ gi.require_version("Adw", "1")
 
 from gi.repository import Gio, Adw, GLib  # type: ignore # noqa: E402
 from .windows.window import NotyWindow  # noqa: E402
+from .windows.preferences import PreferencesDialog  # noqa: E402
 from .services.conf_manager import ConfManager  # noqa: E402
-from . import APPLICATION_ID  # noqa: E402
+from . import APPLICATION_ID, VERSION  # noqa: E402
 
 
 class NotyApplication(Adw.Application):
@@ -43,7 +44,7 @@ class NotyApplication(Adw.Application):
 
         self.create_action("quit", self._quit_action, ["<primary>q"])
         self.create_action("about", self.on_about_action)
-        self.create_action("preferences", self.on_preferences_action)
+        self.create_action("preferences", self.on_preferences_action, ["<primary>p"])
 
     def do_activate(self):
         """Called when the application is activated.
@@ -59,18 +60,21 @@ class NotyApplication(Adw.Application):
     def on_about_action(self, *args):
         """Callback for the app.about action."""
         about = Adw.AboutDialog(
-            application_name="noty",
+            application_name="Noty",
             application_icon=APPLICATION_ID,
-            developer_name="JD",
-            version="0.1.0",
-            developers=["JD"],
-            copyright="© 2025 JD",
+            developer_name="Dagim G. Astatkie",
+            version=VERSION,
+            developers=["Dagim G. Astatkie"],
+            copyright="© 2025 Dagim G. Astatkie",
+            issue_url="https://github.com/dagimg-dot/noty/issues",
         )
         about.present(self.props.active_window)
 
     def on_preferences_action(self, widget, _):
         """Callback for the app.preferences action."""
         print("app.preferences action activated")
+        prefs_window = PreferencesDialog()
+        prefs_window.present()
 
     def _quit_action(self, *args):
         if self.win and self.win.file_manager.currently_open_path:

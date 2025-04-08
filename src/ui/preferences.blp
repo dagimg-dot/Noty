@@ -1,0 +1,163 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $PreferencesDialog: Adw.PreferencesDialog {
+  title: _("Preferences");
+
+  Adw.PreferencesPage {
+    icon-name: "preferences-system-symbolic";
+    title: _("General");
+
+    Adw.PreferencesGroup {
+      title: _("Storage");
+      
+      Adw.ActionRow notes_dir_row {
+        title: _("Notes Directory");
+        subtitle: _("Directory that contains your notes");
+        activatable-widget: btn_notes_dir;
+        
+        Button btn_notes_dir_reset {
+          tooltip-text: _("Reset to Default");
+          valign: center;
+          icon-name: "edit-undo-symbolic";
+          styles [
+            "flat",
+          ]
+        }
+        
+        Button btn_notes_dir {
+          valign: center;
+          Box {
+            spacing: 6;
+            Image {
+              icon-name: "document-open-symbolic";
+            }
+            Label label_notes_dir {
+              label: _("Choose...");
+            }
+          }
+        }
+      }
+      
+      Adw.ActionRow {
+        title: _("Recurse Subfolders");
+        subtitle: _("Include notes from subdirectories");
+        activatable-widget: switch_recurse_subfolders;
+        
+        Switch switch_recurse_subfolders {
+          valign: center;
+        }
+      }
+    }
+
+    Adw.PreferencesGroup {
+      title: _("Files");
+      
+      Adw.ActionRow {
+        title: _("Use File Extensions");
+        subtitle: _("Show file extensions in note names");
+        activatable-widget: switch_use_file_extension;
+        
+        Switch switch_use_file_extension {
+          valign: center;
+        }
+      }
+
+      Adw.ActionRow {
+        title: _("Sorting Method");
+        subtitle: _("How to sort the notes list");
+        
+        DropDown dropdown_sorting_method {
+          valign: center;
+          model: StringList {
+            strings [
+              _("Name"),
+              _("Date Modified"),
+              _("Date Created")
+            ]
+          };
+        }
+      }
+    }
+
+    Adw.PreferencesGroup {
+      title: _("Behavior");
+      
+      Adw.ActionRow {
+        title: _("Activate Row on Select");
+        subtitle: _("Open a note when selected in the list");
+        activatable-widget: switch_activate_row_on_select;
+        
+        Switch switch_activate_row_on_select {
+          valign: center;
+        }
+      }
+    }
+  }
+
+  Adw.PreferencesPage {
+    icon-name: "applications-graphics-symbolic";
+    title: _("Appearance");
+
+    Adw.PreferencesGroup {
+      title: _("Theme");
+      
+      Adw.ActionRow {
+        title: _("Dark Mode");
+        subtitle: _("Use dark application theme");
+        activatable-widget: switch_dark_mode;
+        
+        Switch switch_dark_mode {
+          valign: center;
+        }
+      }
+
+      Adw.ActionRow {
+        title: _("Editor Color Scheme");
+        subtitle: _("Syntax highlighting theme for the editor");
+        
+        DropDown dropdown_color_scheme {
+          valign: center;
+          model: StringList {
+            strings [
+              _("Default"),
+              _("Solarized Light"),
+              _("Solarized Dark"),
+              _("Monokai"),
+              _("Cobalt")
+            ]
+          };
+        }
+      }
+    }
+
+    Adw.PreferencesGroup {
+      title: _("Editor");
+      
+      Adw.ActionRow {
+        title: _("Markdown Syntax Highlighting");
+        subtitle: _("Highlight markdown formatting in the editor");
+        activatable-widget: switch_markdown_syntax;
+        
+        Switch switch_markdown_syntax {
+          valign: center;
+        }
+      }
+
+      Adw.ActionRow {
+        title: _("Font Size");
+        subtitle: _("Text size in the editor");
+        
+        SpinButton spin_button_font_size {
+          valign: center;
+          adjustment: Adjustment {
+            lower: 8;
+            upper: 32;
+            step-increment: 1;
+            value: 12;
+          };
+        }
+      }
+    }
+  }
+}

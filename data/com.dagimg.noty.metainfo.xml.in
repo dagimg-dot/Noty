@@ -47,8 +47,8 @@
   </screenshots>
 
   <releases>
-    <release version="0.1.0" date="2025-04-07">
-      <url type="details">https://github.com/dagimg-dot/noty/releases/tag/v0.1.0</url>
+    <release version="@version@" date="2025-04-07">
+      <url type="details">https://github.com/dagimg-dot/noty/releases/tag/v@version@</url>
       <description translate="no">
         <p>Release description</p>
         <ul>

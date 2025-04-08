@@ -1,12 +1,14 @@
 project(
   'noty',
-  version: '0.1.0',
+  version: '0.1.1',
   meson_version: '>= 1.0.0',
   default_options: [
     'warning_level=2',
     'werror=false',
   ],
 )
+
+app_version = get_option('version')
 
 i18n = import('i18n')
 gnome = import('gnome')

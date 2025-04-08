@@ -11,6 +11,7 @@ blueprints = custom_target(
     'gtk/help-overlay.blp',
     'ui/note_list_item.blp',
     'ui/window.blp',
+    'ui/preferences.blp',
   ),
   output: '.',
   command: [
@@ -35,7 +36,7 @@ python = import('python')
 
 conf = configuration_data()
 conf.set('PYTHON', python.find_installation('python3').full_path())
-conf.set('VERSION', meson.project_version())
+conf.set('VERSION', app_version)
 conf.set('localedir', get_option('prefix') / get_option('localedir'))
 conf.set('pkgdatadir', pkgdatadir)
 conf.set('application_id', application_id)
@@ -67,6 +68,7 @@ configure_file(
 
 noty_sources_main = [
   'windows/window.py',
+  'windows/preferences.py',
 ]
 
 noty_sources_services = [
