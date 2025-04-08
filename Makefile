@@ -12,6 +12,9 @@ clean:
 run: install
 	build/bin/noty
 
+run-release:
+	flatpak run com.dagimg.dev.noty
+
 release:
 	@if [ -z "$(VERSION)" ]; then \
 		echo "Error: VERSION parameter is required. Use 'make release VERSION=x.y.z'"; \
