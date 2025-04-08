@@ -117,7 +117,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
         dialog = Gtk.FileChooserDialog(
             title=_("Select Notes Directory"),
             action=Gtk.FileChooserAction.SELECT_FOLDER,
-            transient_for=self,
+            transient_for=self.get_parent(),
             modal=True,
         )
         dialog.add_buttons(
@@ -143,7 +143,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
 
     def on_notes_dir_reset(self, button):
         default_dir = ConfManager.BASE_SCHEMA["notes_dir"]
-        self.confman.conf["notes_dir"] = default_dir
+        self.coknfman.conf["notes_dir"] = default_dir
         self.label_notes_dir.set_label(os.path.basename(default_dir))
         self.notes_dir_row.set_subtitle(default_dir)
         self.confman.save_conf()

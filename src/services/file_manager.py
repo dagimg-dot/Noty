@@ -158,10 +158,14 @@ class FileManager(GObject.Object):
         return False
 
     def reload_notes(self, *args):
-        print("Reloading notes...")  # Debugging
+        print(f"Reloading notes... args: {args}")  # Debugging
+        print(f"Before reload - Current notes_dir: {self.notes_dir}")
+        print(f"Config notes_dir: {self.confman.conf['notes_dir']}")
+        
         self.notes_model.remove_all()
         self.notes_dir = self.confman.conf["notes_dir"]
-        print(f"Notes directory: {self.notes_dir}")
+        
+        print(f"After reload - Notes directory set to: {self.notes_dir}")
 
         try:
             listdir_func = (
@@ -175,26 +179,32 @@ class FileManager(GObject.Object):
 
             count = 0
             for f_path in file_paths:
-                use_md = self.confman.conf.get("use_file_extension", False)
-                is_valid_extension = (not use_md) or (
-                    use_md and f_path.lower().endswith(".md")
+                # Check if the file is either extensionless or has .md extension
+                is_valid_file = (
+                    path.isfile(f_path) and 
+                    not path.basename(f_path).startswith(".") and
+                    (
+                        # Either has no extension
+                        "." not in path.basename(f_path) or
+                        # Or has .md extension
+                        f_path.lower().endswith(".md")
+                    )
                 )
 
                 # More detailed debugging
                 print(f"Checking file: {f_path}")
                 print(f"  Is file: {path.isfile(f_path)}")
-                print(f"  Valid extension: {is_valid_extension}")
+                print(f"  Is valid file: {is_valid_file}")
                 print(f"  Hidden: {path.basename(f_path).startswith('.')}")
 
-                if path.isfile(f_path) and is_valid_extension:
-                    if not path.basename(f_path).startswith("."):
-                        try:
-                            note = Note(f_path)
-                            self.notes_model.append(note)
-                            count += 1
-                            print(f"Added note: {note.get_name()}")
-                        except Exception as e:
-                            print(f"Error creating Note object for {f_path}: {e}")
+                if is_valid_file:
+                    try:
+                        note = Note(f_path)
+                        self.notes_model.append(note)
+                        count += 1
+                        print(f"Added note: {note.get_name()}")
+                    except Exception as e:
+                        print(f"Error creating Note object for {f_path}: {e}")
 
             print(f"Added {count} notes to the model")
 
@@ -262,17 +272,25 @@ class FileManager(GObject.Object):
                 return note
         return None
 
-    def _handle_notes_dir_change(self, new_dir):
-        print(f"Notes directory changed to: {new_dir}")  # Debug
-        self.notes_dir = new_dir
-        self.save_note_content(
-            self.currently_open_path,
-            self.load_note_content(self.currently_open_path),
-            overwrite_external=False,
-        )
-        self.currently_open_path = None
-        self.last_save_time = None
-        self.reload_notes()
+    def _handle_notes_dir_change(self, *args):
+        if len(args) >= 2:
+            new_dir = args[1]
+            self.notes_dir = new_dir
+            if self.currently_open_path:
+                try:
+                    content = self.load_note_content(self.currently_open_path)
+                    if content:
+                        self.save_note_content(
+                            self.currently_open_path,
+                            content,
+                            overwrite_external=False,
+                        )
+                except Exception as e:
+                    print(f"Error saving current file before directory change: {e}")
+
+            self.currently_open_path = None
+            self.last_save_time = None
+            self.reload_notes()
 
     def _listdir_flat(self, base_path):
         try:
