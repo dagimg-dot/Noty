@@ -66,33 +66,8 @@ class FileManager(GObject.Object):
         """
         if note_path and path.isfile(note_path):
             if not overwrite_external and self.last_save_time:
-                try:
-                    print(f"Checking for external modifications to {note_path}")
-                    current_mtime = datetime.fromtimestamp(path.getmtime(note_path))
-                    print(
-                        f"Current mtime: {current_mtime}, Last save time: {self.last_save_time}"
-                    )
-
-                    if current_mtime > self.last_save_time:
-                        print(f"External modification detected for {note_path}")
-
-                        # Debounce the note_changed signal - only emit if
-                        # at least 1 second has passed since last emission for the same file
-                        current_time = time.time()
-                        should_emit = (
-                            note_path != self._last_note_changed_path
-                            or current_time - self._last_note_changed_time > 1.0
-                        )
-
-                        if should_emit:
-                            print("===> EMITTING note_changed signal")
-                            self._last_note_changed_time = current_time
-                            self._last_note_changed_path = note_path
-                            self.emit("note_changed", note_path)
-
-                        return False
-                except FileNotFoundError:
-                    print(f"File not found during save check: {note_path}")
+                # Check for external modifications first
+                if self._detect_external_modification(note_path):
                     return False
 
             try:
@@ -236,6 +211,53 @@ class FileManager(GObject.Object):
         # self.emit("notes_reloaded")
         return count > 0
 
+    def check_external_changes(self, note_path):
+        """
+        Checks if a file has been externally modified without saving.
+        Returns True if external modifications are detected, False otherwise.
+        Emits 'note_changed' signal if external modifications detected.
+        """
+        if note_path and path.isfile(note_path) and self.last_save_time:
+            return self._detect_external_modification(note_path)
+        return False
+
+    def _detect_external_modification(self, note_path):
+        """
+        Internal helper to detect if a file has been modified externally.
+        Returns True if modification detected, False otherwise.
+        Also emits the note_changed signal if needed.
+        """
+        try:
+            print(f"Checking for external modifications to {note_path}")
+            current_mtime = datetime.fromtimestamp(path.getmtime(note_path))
+            print(
+                f"Current mtime: {current_mtime}, Last save time: {self.last_save_time}"
+            )
+
+            if current_mtime > self.last_save_time:
+                print(f"External modification detected for {note_path}")
+
+                # Debounce the note_changed signal - only emit if
+                # at least 1 second has passed since last emission for the same file
+                current_time = time.time()
+                should_emit = (
+                    note_path != self._last_note_changed_path
+                    or current_time - self._last_note_changed_time > 1.0
+                )
+
+                if should_emit:
+                    print("===> EMITTING note_changed signal")
+                    self._last_note_changed_time = current_time
+                    self._last_note_changed_path = note_path
+                    self.emit("note_changed", note_path)
+
+                return True
+        except FileNotFoundError:
+            print(f"File not found during external check: {note_path}")
+            return False
+
+        return False
+
     # --- Private Helper Methods ---
 
     def _find_note_by_path(self, note_path):
@@ -248,35 +270,14 @@ class FileManager(GObject.Object):
     def _handle_notes_dir_change(self, new_dir):
         print(f"Notes directory changed to: {new_dir}")  # Debug
         self.notes_dir = new_dir
-        self._save_file_content(self.currently_open_path)
+        self.save_note_content(
+            self.currently_open_path,
+            self.load_note_content(self.currently_open_path),
+            overwrite_external=False,
+        )
         self.currently_open_path = None
         self.last_save_time = None
         self.reload_notes()
-
-    def _save_file_content(self, file_path_to_save):
-        """Internal helper to save content (without needing UI buffer)."""
-        # This is tricky now - FileManager doesn't HAVE the content.
-        # The UI layer will need to explicitly call save_note_content.
-        # This method is now less useful in the decoupled model.
-        # We'll rely on the UI calling save_note_content before switching notes or quitting.
-        pass  # Remove the logic that tried to get text from a buffer
-
-    def _auto_save_current_file(self):
-        """Called by the timer to attempt saving the current file."""
-        # Again, FileManager doesn't have the current buffer content.
-        # This auto-save needs rethinking. Options:
-        # 1. UI connects to buffer change signal and calls save_note_content frequently.
-        # 2. UI uses a timer to get buffer content and call save_note_content.
-        # 3. FileManager emits a 'request_save' signal, UI provides content.
-        # For now, let's disable the *action* of auto-save here,
-        # but keep the timer running as a placeholder.
-        # print("Auto-save tick for:", self.currently_open_path) # Debug
-        if self.currently_open_path:
-            # We *could* just check for external modifications here
-            # self.save_note_content(self.currently_open_path, ???, overwrite_external=False) # Cannot get content!
-            pass
-
-        return GLib.SOURCE_CONTINUE  # Keep timer running
 
     def _listdir_flat(self, base_path):
         try:

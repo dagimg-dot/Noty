@@ -294,6 +294,10 @@ class NotyWindow(Adw.ApplicationWindow):
             print("Editor Focus Gained - Hiding Revealer")  # Debug
             self.results_list_revealer.set_reveal_child(False)
             self.source_buffer.place_cursor(self.source_buffer.get_end_iter())
+            
+            # Check for external changes when editor gains focus
+            if self.file_manager.currently_open_path:
+                self.file_manager.check_external_changes(self.file_manager.currently_open_path)
 
         return False  # Allow event propagation
 
