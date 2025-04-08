@@ -4,10 +4,10 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
 from gi.repository import Adw, Gtk, Gdk  # type: ignore # noqa: E402
-from .services.file_manager import FileManager  # noqa: E402
-from .services.conf_manager import ConfManager  # noqa: E402
-from .models.note import Note  # noqa: E402
-from .widgets.note_list_item import NoteListItem  # noqa: E402
+from ..services.file_manager import FileManager  # noqa: E402
+from ..services.conf_manager import ConfManager  # noqa: E402
+from ..models.note import Note  # noqa: E402
+from ..widgets.note_list_item import NoteListItem  # noqa: E402
 
 
 @Gtk.Template(resource_path="/com/dagimg/noty/ui/window.ui")

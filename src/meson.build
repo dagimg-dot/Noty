@@ -66,7 +66,7 @@ configure_file(
 )
 
 noty_sources_main = [
-  'window.py',
+  'windows/window.py',
 ]
 
 noty_sources_services = [
@@ -82,7 +82,7 @@ noty_sources_widgets = [
   'widgets/note_list_item.py',
 ]
 
-install_data(noty_sources_main, install_dir: moduledir)
+install_data(noty_sources_main, install_dir: moduledir / 'windows')
 
 install_data(noty_sources_services, install_dir: moduledir / 'services')
 

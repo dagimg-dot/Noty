@@ -24,7 +24,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
 from gi.repository import Gio, Adw, GLib  # type: ignore # noqa: E402
-from .window import NotyWindow  # noqa: E402
+from .windows.window import NotyWindow  # noqa: E402
 from .services.conf_manager import ConfManager  # noqa: E402
 from . import APPLICATION_ID  # noqa: E402
 
