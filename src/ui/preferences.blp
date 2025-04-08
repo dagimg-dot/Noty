@@ -74,11 +74,8 @@ template $PreferencesDialog: Adw.PreferencesDialog {
                 DropDown dropdown_sorting_method {
                     valign: center;
 
-                    model: StringList {
+                    model: StringList sorting_method_model {
                         strings [
-                            _("Name"),
-                            _("Date Modified"),
-                            _("Date Created"),
                         ]
                     };
                 }
@@ -114,11 +111,8 @@ template $PreferencesDialog: Adw.PreferencesDialog {
                 DropDown dropdown_theme {
                     valign: center;
 
-                    model: StringList {
+                    model: StringList theme_model {
                         strings [
-                            _("Light"),
-                            _("Dark"),
-                            _("System"),
                         ]
                     };
                 }
@@ -131,13 +125,8 @@ template $PreferencesDialog: Adw.PreferencesDialog {
                 DropDown dropdown_color_scheme {
                     valign: center;
 
-                    model: StringList {
+                    model: StringList color_scheme_model {
                         strings [
-                            _("Default"),
-                            _("Solarized Light"),
-                            _("Solarized Dark"),
-                            _("Monokai"),
-                            _("Cobalt"),
                         ]
                     };
                 }

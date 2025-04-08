@@ -8,12 +8,12 @@ COLOR_SCHEMES = {
         "background": "#ffffff",
         "selection": "rgba(180, 180, 180, 0.4)",
     },
-    "solarized-light": {
+    "solarized_light": {
         "text": "#657b83",
         "background": "#fdf6e3",
         "selection": "rgba(180, 180, 180, 0.4)",
     },
-    "solarized-dark": {
+    "solarized_dark": {
         "text": "#839496",
         "background": "#002b36",
         "selection": "rgba(120, 120, 120, 0.4)",
@@ -26,6 +26,11 @@ COLOR_SCHEMES = {
     "cobalt": {
         "text": "#ffffff",
         "background": "#002240",
+        "selection": "rgba(120, 120, 120, 0.4)",
+    },
+    "nord": {
+        "text": "#d8dee9",
+        "background": "#2e3440",
         "selection": "rgba(120, 120, 120, 0.4)",
     },
 }

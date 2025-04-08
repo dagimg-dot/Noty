@@ -22,11 +22,14 @@ class PreferencesDialog(Adw.PreferencesDialog):
     switch_recurse_subfolders: Gtk.Switch = Gtk.Template.Child()
     switch_use_file_extension: Gtk.Switch = Gtk.Template.Child()
     dropdown_sorting_method: Gtk.DropDown = Gtk.Template.Child()
+    sorting_method_model: Gtk.StringList = Gtk.Template.Child()
     switch_activate_row_on_select: Gtk.Switch = Gtk.Template.Child()
 
     # Appearance page widgets
     dropdown_theme: Gtk.DropDown = Gtk.Template.Child()
+    theme_model: Gtk.StringList = Gtk.Template.Child()
     dropdown_color_scheme: Gtk.DropDown = Gtk.Template.Child()
+    color_scheme_model: Gtk.StringList = Gtk.Template.Child()
     switch_markdown_syntax: Gtk.Switch = Gtk.Template.Child()
     spin_button_font_size: Gtk.SpinButton = Gtk.Template.Child()
 
@@ -34,6 +37,9 @@ class PreferencesDialog(Adw.PreferencesDialog):
         super().__init__(**kwargs)
         self.confman = ConfManager()
         self.style_manager = Adw.StyleManager.get_default()
+
+        # Populate dropdown models from constants
+        self._populate_dropdown_models()
 
         self.btn_notes_dir.connect("clicked", self.on_notes_dir_clicked)
         self.btn_notes_dir_reset.connect("clicked", self.on_notes_dir_reset)
@@ -61,6 +67,17 @@ class PreferencesDialog(Adw.PreferencesDialog):
 
         self.load_settings()
 
+    def _populate_dropdown_models(self):
+        for method_name in SORTING_METHODS.keys():
+            self.sorting_method_model.append(_(method_name.replace("_", " ").title()))
+
+        for theme_name in THEME.keys():
+            self.theme_model.append(_(theme_name.title()))
+
+        for scheme_name in COLOR_SCHEMES.keys():
+            display_name = scheme_name.replace("_", " ").title()
+            self.color_scheme_model.append(_(display_name))
+
     def load_settings(self):
         self.label_notes_dir.set_label(os.path.basename(self.confman.conf["notes_dir"]))
         self.notes_dir_row.set_subtitle(self.confman.conf["notes_dir"])
@@ -71,6 +88,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
             self.confman.conf["use_file_extension"]
         )
 
+        # Set dropdown selections from config
         current_sorting = self.confman.conf["sorting_method"]
         if current_sorting in SORTING_METHODS:
             self.dropdown_sorting_method.set_selected(SORTING_METHODS[current_sorting])
@@ -80,13 +98,15 @@ class PreferencesDialog(Adw.PreferencesDialog):
         )
 
         current_theme = self.confman.conf["theme"]
-        self.dropdown_theme.set_selected(THEME[current_theme])
+        if current_theme in THEME:
+            self.dropdown_theme.set_selected(THEME[current_theme])
 
         current_scheme = self.confman.conf["editor_color_scheme"]
-        color_schemes = {k: v for v, k in enumerate(COLOR_SCHEMES)}
-
-        if current_scheme in color_schemes:
-            self.dropdown_color_scheme.set_selected(color_schemes[current_scheme])
+        if current_scheme in COLOR_SCHEMES:
+            # Use the index from the keys list since we don't have a mapping dict for this
+            self.dropdown_color_scheme.set_selected(
+                list(COLOR_SCHEMES.keys()).index(current_scheme)
+            )
 
         self.switch_markdown_syntax.set_active(
             self.confman.conf["show_markdown_syntax_highlighting"]
@@ -142,11 +162,11 @@ class PreferencesDialog(Adw.PreferencesDialog):
 
     def on_sorting_method_changed(self, dropdown, param):
         selected = dropdown.get_selected()
-        methods = list(SORTING_METHODS.keys())
-        if 0 <= selected < len(methods):
-            self.confman.conf["sorting_method"] = methods[selected]
+        sorting_methods = list(SORTING_METHODS.keys())
+        if 0 <= selected < len(sorting_methods):
+            self.confman.conf["sorting_method"] = sorting_methods[selected]
             self.confman.save_conf()
-            self.confman.emit("sorting_method_changed", methods[selected])
+            self.confman.emit("sorting_method_changed", sorting_methods[selected])
 
     def on_activate_row_on_select_changed(self, switch, param):
         active = switch.get_active()
@@ -160,11 +180,13 @@ class PreferencesDialog(Adw.PreferencesDialog):
             self.confman.conf["theme"] = themes[selected]
             self.confman.save_conf()
 
+            # current system theme
             is_dark = self.style_manager.get_color_scheme() in [
                 Adw.ColorScheme.PREFER_DARK,
                 Adw.ColorScheme.FORCE_DARK,
             ]
 
+            # Apply the theme immediately
             theme_dict = {
                 "light": Adw.ColorScheme.FORCE_LIGHT,
                 "dark": Adw.ColorScheme.FORCE_DARK,
@@ -172,13 +194,12 @@ class PreferencesDialog(Adw.PreferencesDialog):
                 if is_dark
                 else Adw.ColorScheme.PREFER_LIGHT,
             }
-
             self.style_manager.set_color_scheme(theme_dict[themes[selected]])
             self.confman.emit("theme_changed", themes[selected])
 
     def on_color_scheme_changed(self, dropdown, param):
         selected = dropdown.get_selected()
-        schemes = ["default", "solarized-light", "solarized-dark", "monokai", "cobalt"]
+        schemes = list(COLOR_SCHEMES.keys())
         if 0 <= selected < len(schemes):
             self.confman.conf["editor_color_scheme"] = schemes[selected]
             self.confman.save_conf()
