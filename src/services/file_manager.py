@@ -1,4 +1,4 @@
-from gi.repository import GLib, GObject, Gio  # type: ignore
+from gi.repository import GObject, Gio  # type: ignore
 from os import listdir, path, remove, rename
 from datetime import datetime
 from .conf_manager import ConfManager
@@ -31,15 +31,10 @@ class FileManager(GObject.Object):
 
         self.reload_notes()
 
-        # Auto save
-        GLib.timeout_add_seconds(5, self._auto_save_current_file)
-
     def get_notes_model(self):
         return self.notes_model
 
     def load_note_content(self, note_path):
-        self._save_file_content(self.currently_open_path)
-
         self.currently_open_path = note_path
 
         if note_path and path.isfile(note_path):
