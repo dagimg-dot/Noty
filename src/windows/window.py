@@ -20,6 +20,9 @@ class NotyWindow(Adw.ApplicationWindow):
     notes_list_view: Gtk.ListView = Gtk.Template.Child()
     text_editor: Gtk.TextView = Gtk.Template.Child()
     notes_list_container: Gtk.Box = Gtk.Template.Child()
+    toast_overlay: Adw.ToastOverlay = Gtk.Template.Child()
+    external_change_revealer: Gtk.Revealer = Gtk.Template.Child()
+    external_change_banner: Adw.Banner = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -302,11 +305,56 @@ class NotyWindow(Adw.ApplicationWindow):
             self.sort_model.items_changed(0, 0, 0)
 
     def _on_external_note_change(self, file_manager, note_path):
-        # TODO: Implement the InfoBar logic here,
-        print(f"TODO: Show InfoBar for external change: {note_path}")
-        # I can use Adw.InfoBar, set its message, make it visible,
-        # and connect buttons to file_manager.load_note_content(note_path)
-        # or file_manager.save_note_content(note_path, current_buffer_content, overwrite=True)
+        if note_path != self.file_manager.currently_open_path:
+            return
+
+        note_name = "Unknown"
+        for i in range(self.file_manager.get_notes_model().get_n_items()):
+            note = self.file_manager.get_notes_model().get_item(i)
+            if note.get_file_path() == note_path:
+                note_name = note.get_name()
+                break
+
+        # Create a toast notification
+        toast = Adw.Toast.new(f"{note_name} changed externally")
+        toast.set_button_label("Reload")
+        toast.set_timeout(0)  # Don't auto-hide
+        toast.connect("button-clicked", self._on_reload_toast)
+        toast.connect("dismissed", self._on_dismiss_toast)
+
+        self._externally_changed_path = note_path
+
+        if (
+            hasattr(self, "toast_overlay")
+            and self.toast_overlay is not None
+            and self.toast_overlay
+        ):
+            self.toast_overlay.add_toast(toast)
+
+    def _on_reload_toast(self, toast):
+        if hasattr(self, "_externally_changed_path") and self._externally_changed_path:
+            content = self.file_manager.load_note_content(self._externally_changed_path)
+
+            if content is not None:
+                self.source_buffer.handler_block_by_func(self._on_buffer_changed)
+                self.source_buffer.set_text(content)
+                self.source_buffer.handler_unblock_by_func(self._on_buffer_changed)
+
+            self._externally_changed_path = None
+
+    def _on_dismiss_toast(self, toast):
+        if hasattr(self, "_externally_changed_path") and self._externally_changed_path:
+            current_content = self.source_buffer.get_text(
+                self.source_buffer.get_start_iter(),
+                self.source_buffer.get_end_iter(),
+                True,
+            )
+
+            self.file_manager.save_note_content(
+                self._externally_changed_path, current_content, overwrite_external=True
+            )
+
+            self._externally_changed_path = None
 
     def _sort_notes_func(self, note_a, note_b, user_data):
         sort_method = self.confman.conf.get("sorting_method", "name")
@@ -342,14 +390,12 @@ class NotyWindow(Adw.ApplicationWindow):
         font_size = self.confman.conf.get("font_size", 12)
         color_scheme = self.confman.conf.get("editor_color_scheme", "default")
 
-        # Check if we need to invert colors for dark mode
         style_manager = Adw.StyleManager.get_default()
         is_dark = style_manager.get_color_scheme() in [
             Adw.ColorScheme.PREFER_DARK,
             Adw.ColorScheme.FORCE_DARK,
         ]
 
-        # Set default scheme if the requested one doesn't exist
         if color_scheme not in COLOR_SCHEMES:
             color_scheme = "default"
 

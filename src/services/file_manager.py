@@ -3,6 +3,7 @@ from os import listdir, path, remove, rename
 from datetime import datetime
 from .conf_manager import ConfManager
 from ..models.note import Note
+import time
 
 
 class FileManager(GObject.Object):
@@ -19,6 +20,10 @@ class FileManager(GObject.Object):
         self.last_save_time = None
         self.notes_dir = self.confman.conf["notes_dir"]
         self.notes_model = Gio.ListStore.new(Note)
+
+        # Add debounce for note_changed signals
+        self._last_note_changed_time = 0
+        self._last_note_changed_path = None
 
         self.confman.connect("notes_dir_changed", self._handle_notes_dir_change)
         self.confman.connect("markdown_syntax_highlighting_changed", self.reload_notes)
@@ -62,10 +67,29 @@ class FileManager(GObject.Object):
         if note_path and path.isfile(note_path):
             if not overwrite_external and self.last_save_time:
                 try:
+                    print(f"Checking for external modifications to {note_path}")
                     current_mtime = datetime.fromtimestamp(path.getmtime(note_path))
+                    print(
+                        f"Current mtime: {current_mtime}, Last save time: {self.last_save_time}"
+                    )
+
                     if current_mtime > self.last_save_time:
                         print(f"External modification detected for {note_path}")
-                        self.emit("note_changed", note_path)
+
+                        # Debounce the note_changed signal - only emit if
+                        # at least 1 second has passed since last emission for the same file
+                        current_time = time.time()
+                        should_emit = (
+                            note_path != self._last_note_changed_path
+                            or current_time - self._last_note_changed_time > 1.0
+                        )
+
+                        if should_emit:
+                            print("===> EMITTING note_changed signal")
+                            self._last_note_changed_time = current_time
+                            self._last_note_changed_path = note_path
+                            self.emit("note_changed", note_path)
+
                         return False
                 except FileNotFoundError:
                     print(f"File not found during save check: {note_path}")
@@ -178,14 +202,14 @@ class FileManager(GObject.Object):
 
             file_paths = list(listdir_func(self.notes_dir))
             print(f"Found {len(file_paths)} total files")
-            
+
             count = 0
             for f_path in file_paths:
                 use_md = self.confman.conf.get("use_file_extension", False)
                 is_valid_extension = (not use_md) or (
                     use_md and f_path.lower().endswith(".md")
                 )
-                
+
                 # More detailed debugging
                 print(f"Checking file: {f_path}")
                 print(f"  Is file: {path.isfile(f_path)}")

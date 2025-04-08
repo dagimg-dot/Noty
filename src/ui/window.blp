@@ -33,52 +33,69 @@ template $NotyWindow: Adw.ApplicationWindow {
       }
     }
 
-    Revealer results_list_revealer {
-      reveal-child: false;
-      transition-type: slide_down;
-      transition-duration: 200;
+    Adw.ToastOverlay toast_overlay {
+      Revealer external_change_revealer {
+        reveal-child: false;
+        transition-type: slide_down;
+        transition-duration: 200;
 
-      Box {
+        child: Adw.Banner external_change_banner {
+          title: _("File changed externally");
+          button-label: _("Reload");
+        };
+      }
+
+      child: Box {
         orientation: vertical;
 
-        ScrolledWindow notes_list_container {
-          hexpand: true;
-          height-request: 200;
-          hscrollbar-policy: never;
+        Revealer results_list_revealer {
+          reveal-child: false;
+          transition-type: slide_down;
+          transition-duration: 200;
 
-          ListView notes_list_view {
-            visible: true;
+          Box {
+            orientation: vertical;
 
-            styles [
-              "list",
-            ]
+            ScrolledWindow notes_list_container {
+              hexpand: true;
+              height-request: 200;
+              hscrollbar-policy: never;
+
+              ListView notes_list_view {
+                visible: true;
+
+                styles [
+                  "list",
+                ]
+              }
+            }
           }
         }
-      }
-    }
 
-    Box editor_container {
-      orientation: vertical;
-      hexpand: true;
-      vexpand: true;
-
-      ScrolledWindow {
-        hexpand: true;
-        vexpand: true;
-        hscrollbar-policy: automatic;
-
-        TextView text_editor {
-          visible: true;
-          monospace: true;
+        Box editor_container {
+          orientation: vertical;
           hexpand: true;
           vexpand: true;
-          wrap-mode: word_char;
-          top-margin: 12;
-          bottom-margin: 12;
-          left-margin: 12;
-          right-margin: 12;
+
+          ScrolledWindow {
+            hexpand: true;
+            vexpand: true;
+            hscrollbar-policy: automatic;
+
+            TextView text_editor {
+              visible: true;
+              monospace: true;
+              hexpand: true;
+              vexpand: true;
+              wrap-mode: word_char;
+              top-margin: 12;
+              bottom-margin: 12;
+              left-margin: 12;
+              right-margin: 12;
+            }
+          }
         }
-      }
+      };
     }
   };
 }
