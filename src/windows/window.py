@@ -29,6 +29,9 @@ class NotyWindow(Adw.ApplicationWindow):
 
         self.confman = ConfManager()
         self.file_manager = FileManager()
+        
+        # Flag to track selection method (keyboard vs mouse)
+        self._selection_from_keyboard = False
 
         print("Setting up list view...")
         self._setup_list_view()
@@ -72,6 +75,11 @@ class NotyWindow(Adw.ApplicationWindow):
         self.notes_list_view.set_factory(factory)
 
         self.notes_list_view.connect("activate", self._on_note_activated)
+        
+        # Add click controller to detect mouse selection
+        click_controller = Gtk.GestureClick.new()
+        click_controller.connect("pressed", self._on_listview_click)
+        self.notes_list_view.add_controller(click_controller)
 
     def _setup_key_controllers(self):
         list_key_controller = Gtk.EventControllerKey.new()
@@ -119,7 +127,14 @@ class NotyWindow(Adw.ApplicationWindow):
         self.search_entry.grab_focus()
         self.search_entry.select_region(0, -1)
 
+    def _on_listview_click(self, gesture, n_press, x, y):
+        """Track that the selection was made by mouse"""
+        self._selection_from_keyboard = False
+        
     def _on_list_key_pressed(self, controller, keyval, keycode, state):
+        if keyval in (Gdk.KEY_Up, Gdk.KEY_Down, Gdk.KEY_Home, Gdk.KEY_End, Gdk.KEY_Page_Up, Gdk.KEY_Page_Down):
+            self._selection_from_keyboard = True
+            
         if keyval == Gdk.KEY_Escape:
             self._search_entry_focus()
             return True
@@ -141,6 +156,10 @@ class NotyWindow(Adw.ApplicationWindow):
         return False
 
     def _on_search_key_pressed(self, controller, keyval, keycode, state):
+        if keyval in (Gdk.KEY_Up, Gdk.KEY_Down):
+            # Mark that the next selection will be from keyboard
+            self._selection_from_keyboard = True
+            
         if keyval == Gdk.KEY_Down:
             if self.sort_model.get_n_items() > 0:
                 self.selection_model.set_selected(0)
@@ -194,9 +213,14 @@ class NotyWindow(Adw.ApplicationWindow):
         selected_note = selection_model.get_selected_item()
         if isinstance(selected_note, Note):
             activate_on_select = self.confman.conf.get("activate_row_on_select", False)
-            if activate_on_select:
+            
+            # Only apply activate_on_select for mouse selection, not keyboard navigation
+            if activate_on_select and not self._selection_from_keyboard:
                 self._load_note_into_editor(selected_note)
                 self.text_editor.grab_focus()
+            
+            # Reset the flag after processing
+            self._selection_from_keyboard = False
         else:
             print("Selection Cleared or Invalid")
 
