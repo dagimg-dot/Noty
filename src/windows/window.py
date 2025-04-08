@@ -52,7 +52,9 @@ class NotyWindow(Adw.ApplicationWindow):
         model = self.file_manager.get_notes_model()
 
         self.filter_model = Gtk.FilterListModel.new(model, None)
-        self.sorter = Gtk.CustomSorter.new(self._sort_notes, None)
+
+        # Create a sorter function using CustomSorter
+        self.sorter = Gtk.CustomSorter.new(self._sort_notes_func, None)
         self.sort_model = Gtk.SortListModel.new(self.filter_model, self.sorter)
 
         self.selection_model = Gtk.SingleSelection.new(self.sort_model)
@@ -306,7 +308,7 @@ class NotyWindow(Adw.ApplicationWindow):
         # and connect buttons to file_manager.load_note_content(note_path)
         # or file_manager.save_note_content(note_path, current_buffer_content, overwrite=True)
 
-    def _sort_notes(self, note_a, note_b, *args):
+    def _sort_notes_func(self, note_a, note_b, user_data):
         sort_method = self.confman.conf.get("sorting_method", "name")
         if isinstance(note_a, Note) and isinstance(note_b, Note):
             if sort_method == "name":
@@ -317,9 +319,10 @@ class NotyWindow(Adw.ApplicationWindow):
                 if name_a > name_b:
                     return 1
                 return 0
-            elif sort_method == "last_modified":
+            elif sort_method == "date_modified":
                 time_a = note_a.get_last_modified()
                 time_b = note_b.get_last_modified()
+
                 if time_a > time_b:
                     return -1
                 if time_a < time_b:
@@ -329,9 +332,9 @@ class NotyWindow(Adw.ApplicationWindow):
 
     def _on_sorting_method_changed(self, *args):
         print("Sorting Method Changed - Forcing Re-Sort")  # Debug
-        # apply the _sort_notes function to the sort_model
-        if hasattr(self, "sort_model") and self.sort_model:
-            self.sort_model.set_sorter(self._sort_notes)
+        if hasattr(self, "sorter") and self.sorter:
+            self.sorter.changed(Gtk.SorterChange.DIFFERENT)
+            print("Sort order updated")
 
     def _apply_editor_settings(self, *args):
         print("Applying editor settings (TextView)")  # Debug
