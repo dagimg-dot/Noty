@@ -52,13 +52,16 @@ template $NotyWindow: Adw.ApplicationWindow {
           reveal-child: false;
           transition-type: slide_down;
           transition-duration: 200;
+          
 
           Box {
             orientation: vertical;
 
             ScrolledWindow notes_list_container {
               hexpand: true;
-              height-request: 200;
+              min-content-height: 50;
+              max-content-height: 200;
+              propagate-natural-height: true;
               hscrollbar-policy: never;
 
               ListView notes_list_view {
