@@ -4,6 +4,7 @@ gnome = import('gnome')
 
 # Get application ID from options
 application_id = get_option('application_id')
+app_version = meson.project_version()
 
 blueprints = custom_target(
   'blueprints',
