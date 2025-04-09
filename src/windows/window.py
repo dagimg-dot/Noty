@@ -153,13 +153,18 @@ class NotyWindow(Adw.ApplicationWindow):
         elif keyval == Gdk.KEY_Up:
             selected_pos = self.selection_model.get_selected()
             if selected_pos == 0:
-                self._search_entry_focus()
+                self.selection_model.set_selected(n_items - 1)
+                last_item = self.notes_list_view.get_last_child()
+                if last_item:
+                    last_item.grab_focus()
                 return True
         elif keyval == Gdk.KEY_Down:
             selected_pos = self.selection_model.get_selected()
-
-            if n_items > 0 and selected_pos == n_items - 1:
-                self._search_entry_focus()
+            if selected_pos == n_items - 1:
+                self.selection_model.set_selected(0)
+                first_item = self.notes_list_view.get_first_child()
+                if first_item:
+                    first_item.grab_focus()
                 return True
         return False
 
@@ -172,12 +177,16 @@ class NotyWindow(Adw.ApplicationWindow):
             return False
 
         if keyval == Gdk.KEY_Down:
-            self.notes_list_view.grab_focus()
             self.selection_model.set_selected(0)
+            first_item = self.notes_list_view.get_first_child()
+            if first_item:
+                first_item.grab_focus()
             return True
         elif keyval == Gdk.KEY_Up:
-            self.notes_list_view.grab_focus()
             self.selection_model.set_selected(n_items - 1)
+            last_item = self.notes_list_view.get_last_child()
+            if last_item:
+                last_item.grab_focus()
             return True
         return False
 
