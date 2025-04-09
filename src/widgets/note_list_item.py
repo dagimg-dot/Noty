@@ -1,7 +1,7 @@
 from gi.repository import Gtk  # type: ignore
+from ..utils import logger
 
 
-# Inherit from Gtk.Box instead of GObject.Object
 @Gtk.Template(resource_path="/com/dagimg/noty/ui/note_list_item.ui")
 class NoteListItem(Gtk.Box):
     __gtype_name__ = "NoteListItem"
@@ -22,7 +22,7 @@ class NoteListItem(Gtk.Box):
             if self.note_name_label.get_parent() is None:
                 self.append(self.note_name_label)
         else:
-            print("ERROR: Could not find note_name_label!")
+            logger.error("Could not find note_name_label!")
 
     def unbind(self, note_object):
         if self.note_name_label:

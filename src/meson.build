@@ -87,6 +87,7 @@ noty_sources_widgets = [
 
 noty_sources_utils = [
   'utils/constants.py',
+  'utils/logger.py',
 ]
 
 install_data(noty_sources_main, install_dir: moduledir / 'windows')

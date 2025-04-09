@@ -9,6 +9,7 @@ from ..services.conf_manager import ConfManager  # noqa: E402
 from ..models.note import Note  # noqa: E402
 from ..widgets.note_list_item import NoteListItem  # noqa: E402
 from ..utils.constants import COLOR_SCHEMES  # noqa: E402
+from ..utils import logger  # noqa: E402
 
 
 @Gtk.Template(resource_path="/com/dagimg/noty/ui/window.ui")
@@ -33,7 +34,7 @@ class NotyWindow(Adw.ApplicationWindow):
         # Flag to track selection method (keyboard vs mouse)
         self._selection_from_keyboard = False
 
-        print("Setting up list view...")
+        logger.info("Setting up list view...")
         self._setup_list_view()
         self._setup_text_view()
         self._connect_signals()
@@ -45,7 +46,7 @@ class NotyWindow(Adw.ApplicationWindow):
 
         # Debug output to see if we have notes
         model = self.file_manager.get_notes_model()
-        print(f"Notes model has {model.get_n_items()} items")
+        logger.debug(f"Notes model has {model.get_n_items()} items")
 
         # Initially show the notes list
         self.results_list_revealer.set_reveal_child(True)
@@ -199,45 +200,41 @@ class NotyWindow(Adw.ApplicationWindow):
     # --- ListView Factory Callbacks ---
 
     def _on_factory_setup(self, factory, list_item):
-        note_list_item = NoteListItem()
-        list_item.set_child(note_list_item)
-        print("Factory Setup (Widget created)")  # Debug
+        list_item.set_child(NoteListItem())
+        logger.debug("Factory Setup (Widget created)")  # Debug
 
     def _on_factory_bind(self, factory, list_item):
-        note_list_item = list_item.get_child()
-        note_object: Note = list_item.get_item()
-
-        if note_object and isinstance(note_list_item, NoteListItem):
-            note_list_item.bind_to_note(note_object)
-            print(f"Factory Bind: {note_object.get_name()}")  # Debug
+        note_object = list_item.get_item()
+        if isinstance(note_object, Note):
+            list_item.get_child().bind_to_note(note_object)
+            logger.debug(f"Factory Bind: {note_object.get_name()}")  # Debug
         else:
-            print("Factory Bind: Item/Widget type mismatch or missing")  # Debug
+            logger.warning("Factory Bind: Item/Widget type mismatch or missing")  # Debug
 
     def _on_factory_unbind(self, factory, list_item):
-        note_list_item = list_item.get_child()
         note_object = list_item.get_item()
-
-        if note_object and isinstance(note_list_item, NoteListItem):
-            note_list_item.unbind(note_object)
-            print(f"Factory Unbind: {note_object.get_name()}")  # Debug
+        if isinstance(note_object, Note):
+            list_item.get_child().unbind(note_object)
+            logger.debug(f"Factory Unbind: {note_object.get_name()}")  # Debug
         else:
-            print("Factory Unbind: Item/Widget type mismatch or missing")  # Debug
+            logger.warning("Factory Unbind: Item/Widget type mismatch or missing")  # Debug
 
     # --- Signal Handlers ---
 
     def _on_note_selected(self, selection_model, *args):
-        selected_note = selection_model.get_selected_item()
-        if isinstance(selected_note, Note):
-            activate_on_select = self.confman.conf.get("activate_row_on_select", False)
+        selected_item = selection_model.get_selected_item()
+        if selected_item is None:
+            logger.debug("Selection Cleared or Invalid")
+            return
 
-            # Only apply activate_on_select for mouse selection, not keyboard navigation
-            if activate_on_select and not self._selection_from_keyboard:
-                self._load_note_into_editor(selected_note)
-                self.text_editor.grab_focus()
+        activate_on_select = self.confman.conf.get("activate_row_on_select", False)
 
-            self._selection_from_keyboard = False
-        else:
-            print("Selection Cleared or Invalid")
+        # Only apply activate_on_select for mouse selection, not keyboard navigation
+        if activate_on_select and not self._selection_from_keyboard:
+            self._load_note_into_editor(selected_item)
+            self.text_editor.grab_focus()
+
+        self._selection_from_keyboard = False
 
     def _on_note_activated(self, list_view, position):
         model = list_view.get_model()
@@ -274,8 +271,8 @@ class NotyWindow(Adw.ApplicationWindow):
         self.search_entry.set_text(note_object.get_name())
 
     def _on_search_changed(self, search_entry):
-        query = search_entry.get_text().lower().strip()
-        print(f"Search Query: {query}")  # Debug
+        query = search_entry.get_text().strip()
+        logger.debug(f"Search Query: {query}")  # Debug
         if not hasattr(self, "filter_model"):
             return
 
@@ -318,7 +315,7 @@ class NotyWindow(Adw.ApplicationWindow):
 
     def _on_editor_focus_changed(self, widget, param):
         if not widget.has_focus():
-            print("Editor Focus Lost - Saving")  # Debug
+            logger.debug("Editor Focus Lost - Saving")  # Debug
             if self.file_manager.currently_open_path:
                 content = self.source_buffer.get_text(
                     self.source_buffer.get_start_iter(),
@@ -330,7 +327,7 @@ class NotyWindow(Adw.ApplicationWindow):
                 )
             self.results_list_revealer.set_reveal_child(True)
         else:
-            print("Editor Focus Gained - Hiding Revealer")  # Debug
+            logger.debug("Editor Focus Gained - Hiding Revealer")  # Debug
             self.results_list_revealer.set_reveal_child(False)
             self.source_buffer.place_cursor(self.source_buffer.get_end_iter())
 
@@ -343,7 +340,7 @@ class NotyWindow(Adw.ApplicationWindow):
         return False  # Allow event propagation
 
     def _on_notes_reloaded(self, file_manager):
-        print("Window notified: Notes Reloaded")
+        logger.debug("Window notified: Notes Reloaded")
         if self.filter_model.get_filter():
             self.filter_model.get_filter().changed(Gtk.FilterChange.DIFFERENT)
         if self.sorter:
@@ -424,13 +421,12 @@ class NotyWindow(Adw.ApplicationWindow):
         return 0
 
     def _on_sorting_method_changed(self, *args):
-        print("Sorting Method Changed - Forcing Re-Sort")  # Debug
-        if hasattr(self, "sorter") and self.sorter:
-            self.sorter.changed(Gtk.SorterChange.DIFFERENT)
-            print("Sort order updated")
+        logger.debug("Sorting Method Changed - Forcing Re-Sort")  # Debug
+        self.sorter.changed(Gtk.SorterChange.DIFFERENT)
+        logger.debug("Sort order updated")
 
     def _apply_editor_settings(self, *args):
-        print("Applying editor settings (TextView)")  # Debug
+        logger.debug("Applying editor settings (TextView)")  # Debug
 
         font_size = self.confman.conf.get("font_size", 12)
         color_scheme = self.confman.conf.get("editor_color_scheme", "default")
@@ -477,14 +473,14 @@ class NotyWindow(Adw.ApplicationWindow):
         return None
 
     def on_close_request(self, *args):
-        print("Window closing - saving files")
+        logger.info("Window closing - saving files")
         if self.file_manager.currently_open_path:
+            logger.info(f"Saving file before exit: {self.file_manager.currently_open_path}")
             current_content = self.source_buffer.get_text(
                 self.source_buffer.get_start_iter(),
                 self.source_buffer.get_end_iter(),
                 True,
             )
-            print(f"Saving file before exit: {self.file_manager.currently_open_path}")
             self.file_manager.save_note_content(
                 self.file_manager.currently_open_path, current_content
             )

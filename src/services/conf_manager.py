@@ -5,12 +5,15 @@ from os import environ as Env, system, makedirs
 import json
 from gi.repository import GObject, GLib  # type: ignore
 from .. import APPLICATION_ID
+from ..utils import logger
 
 documents_dir = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOCUMENTS)
 if not documents_dir:
+    logger.info("Documents directory not found, creating it")
     system("xdg-user-dirs-update")
     documents_dir = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOCUMENTS)
     if not documents_dir:
+        logger.info("Documents directory still not found, using home directory")
         documents_dir = f"{Env.get('HOME')}/Documents"
 
 
@@ -65,15 +68,19 @@ class ConfManager(metaclass=Singleton):
         )
 
         if self.is_flatpak:
+            logger.info("Running inside flatpak sandbox")
             self.path = Path(f"{Env.get('XDG_CONFIG_HOME')}/{APPLICATION_ID}.json")
         else:
+            logger.info("Running outside flatpak sandbox")
             self.path = Path(f"{Env.get('HOME')}/.config/{APPLICATION_ID}.json")
 
         self.conf = None
 
         if isfile(str(self.path)):
+            logger.info("Config file found, loading it")
             self.load_conf()
         else:
+            logger.info("Config file not found, using default schema")
             self.conf = ConfManager.BASE_SCHEMA.copy()
             self.save_conf()
 
@@ -81,6 +88,7 @@ class ConfManager(metaclass=Singleton):
             try:
                 makedirs(self.conf["notes_dir"])
             except PermissionError:
+                logger.info("Permission error creating notes directory, using default")
                 self.conf["notes_dir"] = self.BASE_SCHEMA["notes_dir"]
                 self.save_conf()
                 if not isdir(self.conf["notes_dir"]):
@@ -98,14 +106,15 @@ class ConfManager(metaclass=Singleton):
                         self.conf[k] = ConfManager.BASE_SCHEMA[k].copy()
                     else:
                         self.conf[k] = ConfManager.BASE_SCHEMA[k]
-                        
+
             # Handle transition from dark_mode to theme
             if "dark_mode" in self.conf and "theme" not in self.conf:
                 self.conf["theme"] = "dark" if self.conf["dark_mode"] else "light"
                 del self.conf["dark_mode"]
                 self.save_conf()
-                
+
         except Exception:
+            logger.info("Error loading config file, using default schema")
             self.conf = ConfManager.BASE_SCHEMA.copy()
             self.save_conf()
 

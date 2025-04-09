@@ -10,7 +10,7 @@ clean:
 	rm -rf build
 
 run: install
-	build/bin/noty
+	build/bin/noty --debug
 
 run-release:
 	flatpak run com.dagimg.dev.noty

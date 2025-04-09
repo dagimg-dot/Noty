@@ -3,6 +3,7 @@ from os import listdir, path, remove, rename
 from datetime import datetime
 from .conf_manager import ConfManager
 from ..models.note import Note
+from ..utils import logger
 import time
 
 
@@ -46,7 +47,7 @@ class FileManager(GObject.Object):
                     )
                     return content
             except Exception as e:
-                print(f"Error loading file {note_path}: {e}")
+                logger.error(f"Error loading file {note_path}: {e}")
                 self.currently_open_path = None
                 return ""
         else:
@@ -82,7 +83,7 @@ class FileManager(GObject.Object):
                     note_object.update_last_modified()
                 return True
             except Exception as e:
-                print(f"Error saving file {note_path}: {e}")
+                logger.error(f"Error saving file {note_path}: {e}")
                 return False
         return False
 
@@ -94,7 +95,7 @@ class FileManager(GObject.Object):
         file_path = path.join(self.notes_dir, f"{name}{extension}")
 
         if path.exists(file_path):
-            print(f"Note already exists: {file_path}")
+            logger.warning(f"Note already exists: {file_path}")
             # TODO: Raise error
             return None
 
@@ -107,7 +108,7 @@ class FileManager(GObject.Object):
             # self.emit("notes_reloaded")
             return new_note
         except Exception as e:
-            print(f"Error creating note {file_path}: {e}")
+            logger.error(f"Error creating note {file_path}: {e}")
             return None
 
     def delete_note_by_path(self, note_path):
@@ -124,7 +125,7 @@ class FileManager(GObject.Object):
                 # self.emit("notes_reloaded")  # Simple way for now
                 return True
             except Exception as e:
-                print(f"Error deleting note {note_path}: {e}")
+                logger.error(f"Error deleting note {note_path}: {e}")
                 return False
         return False
 
@@ -138,7 +139,7 @@ class FileManager(GObject.Object):
             new_file_path = path.join(path.dirname(note_path), f"{new_name}{extension}")
 
             if path.exists(new_file_path):
-                print(f"Target name already exists: {new_file_path}")
+                logger.warning(f"Target name already exists: {new_file_path}")
                 # TODO: Raise error
                 return False
 
@@ -153,19 +154,19 @@ class FileManager(GObject.Object):
                 # self.emit("notes_reloaded")
                 return True
             except Exception as e:
-                print(f"Error renaming note {note_path} to {new_file_path}: {e}")
+                logger.error(f"Error renaming note {note_path} to {new_file_path}: {e}")
                 return False
         return False
 
     def reload_notes(self, *args):
-        print(f"Reloading notes... args: {args}")  # Debugging
-        print(f"Before reload - Current notes_dir: {self.notes_dir}")
-        print(f"Config notes_dir: {self.confman.conf['notes_dir']}")
+        logger.debug(f"Reloading notes... args: {args}")
+        logger.debug(f"Before reload - Current notes_dir: {self.notes_dir}")
+        logger.debug(f"Config notes_dir: {self.confman.conf['notes_dir']}")
         
         self.notes_model.remove_all()
         self.notes_dir = self.confman.conf["notes_dir"]
         
-        print(f"After reload - Notes directory set to: {self.notes_dir}")
+        logger.info(f"Notes directory set to: {self.notes_dir}")
 
         try:
             listdir_func = (
@@ -175,7 +176,7 @@ class FileManager(GObject.Object):
             )
 
             file_paths = list(listdir_func(self.notes_dir))
-            print(f"Found {len(file_paths)} total files")
+            logger.info(f"Found {len(file_paths)} total files")
 
             count = 0
             for f_path in file_paths:
@@ -184,34 +185,32 @@ class FileManager(GObject.Object):
                     path.isfile(f_path) and 
                     not path.basename(f_path).startswith(".") and
                     (
-                        # Either has no extension
                         "." not in path.basename(f_path) or
-                        # Or has .md extension
                         f_path.lower().endswith(".md")
                     )
                 )
 
                 # More detailed debugging
-                print(f"Checking file: {f_path}")
-                print(f"  Is file: {path.isfile(f_path)}")
-                print(f"  Is valid file: {is_valid_file}")
-                print(f"  Hidden: {path.basename(f_path).startswith('.')}")
+                logger.debug(f"Checking file: {f_path}")
+                logger.debug(f"  Is file: {path.isfile(f_path)}")
+                logger.debug(f"  Is valid file: {is_valid_file}")
+                logger.debug(f"  Hidden: {path.basename(f_path).startswith('.')}")
 
                 if is_valid_file:
                     try:
                         note = Note(f_path)
                         self.notes_model.append(note)
                         count += 1
-                        print(f"Added note: {note.get_name()}")
+                        logger.debug(f"Added note: {note.get_name()}")
                     except Exception as e:
-                        print(f"Error creating Note object for {f_path}: {e}")
+                        logger.error(f"Error creating Note object for {f_path}: {e}")
 
-            print(f"Added {count} notes to the model")
+            logger.info(f"Added {count} notes to the model")
 
         except FileNotFoundError:
-            print(f"Notes directory not found: {self.notes_dir}")
+            logger.error(f"Notes directory not found: {self.notes_dir}")
         except Exception as e:
-            print(f"Error scanning notes directory {self.notes_dir}: {e}")
+            logger.error(f"Error scanning notes directory {self.notes_dir}: {e}")
 
         # self.emit("notes_reloaded")
         return count > 0
@@ -233,14 +232,14 @@ class FileManager(GObject.Object):
         Also emits the note_changed signal if needed.
         """
         try:
-            print(f"Checking for external modifications to {note_path}")
+            logger.debug(f"Checking for external modifications to {note_path}")
             current_mtime = datetime.fromtimestamp(path.getmtime(note_path))
-            print(
+            logger.debug(
                 f"Current mtime: {current_mtime}, Last save time: {self.last_save_time}"
             )
 
             if current_mtime > self.last_save_time:
-                print(f"External modification detected for {note_path}")
+                logger.info(f"External modification detected for {note_path}")
 
                 # Debounce the note_changed signal - only emit if
                 # at least 1 second has passed since last emission for the same file
@@ -251,14 +250,14 @@ class FileManager(GObject.Object):
                 )
 
                 if should_emit:
-                    print("===> EMITTING note_changed signal")
+                    logger.debug("Emitting note_changed signal")
                     self._last_note_changed_time = current_time
                     self._last_note_changed_path = note_path
                     self.emit("note_changed", note_path)
 
                 return True
         except FileNotFoundError:
-            print(f"File not found during external check: {note_path}")
+            logger.warning(f"File not found during external check: {note_path}")
             return False
 
         return False
@@ -286,26 +285,20 @@ class FileManager(GObject.Object):
                             overwrite_external=False,
                         )
                 except Exception as e:
-                    print(f"Error saving current file before directory change: {e}")
+                    logger.error(f"Error saving current file before directory change: {e}")
 
             self.currently_open_path = None
             self.last_save_time = None
             self.reload_notes()
 
     def _listdir_flat(self, base_path):
-        try:
-            for fname in listdir(base_path):
-                yield path.join(base_path, fname)
-        except FileNotFoundError:
-            return
+        for f in listdir(base_path):
+            yield path.join(base_path, f)
 
     def _listdir_recursive(self, base_path):
-        try:
-            for entry in listdir(base_path):
-                full_path = path.join(base_path, entry)
-                if path.isdir(full_path):
-                    yield from self._listdir_recursive(full_path)
-                else:
-                    yield full_path
-        except FileNotFoundError:
-            return
+        for f in listdir(base_path):
+            full_path = path.join(base_path, f)
+            if path.isdir(full_path) and not f.startswith("."):
+                yield from self._listdir_recursive(full_path)
+            else:
+                yield full_path
