@@ -31,28 +31,33 @@
 
   <!-- Applications should set a brand color in both light and dark variants like so -->
   <branding>
-    <color type="primary" scheme_preference="light">#ff00ff</color>
-    <color type="primary" scheme_preference="dark">#993d3d</color>
+    <color type="primary" scheme_preference="light">#002A93</color>
+    <color type="primary" scheme_preference="dark">#002A93</color>
   </branding>
 
   <screenshots>
     <screenshot type="default">
-      <image>https://example.org/example1.png</image>
-      <caption>A caption</caption>
+      <image>
+        https://i.ibb.co/352fBR7r/Screenshot-From-2025-04-09-21-49-52.png
+      </image>
+      <caption>Main Editor</caption>
     </screenshot>
     <screenshot>
-      <image>https://example.org/example2.png</image>
-      <caption>A caption</caption>
+      <image>
+        https://i.ibb.co/gbZr6ks5/Screenshot-From-2025-04-09-21-50-26.png
+      </image>
+      <caption>Note List</caption>
     </screenshot>
   </screenshots>
 
   <releases>
-    <release version="@version@" date="2025-04-07">
-      <url type="details">https://github.com/dagimg-dot/noty/releases/tag/v@version@</url>
+    <release version="0.2.1" date="2025-04-09">
+      <url type="details">https://github.com/dagimg-dot/noty/releases/tag/v0.2.1</url>
       <description translate="no">
         <p>Release description</p>
         <ul>
-          <li>Initial release</li>
+          <li>Add application logo</li>
+          <li>Minor improvements</li>
         </ul>
       </description>
     </release>
