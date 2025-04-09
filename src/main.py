@@ -46,7 +46,7 @@ class NotyApplication(Adw.Application):
 
         self.create_action("quit", self._quit_action, ["<primary>q"])
         self.create_action("about", self.on_about_action)
-        self.create_action("preferences", self.on_preferences_action, ["<primary>p"])
+        self.create_action("preferences", self.on_preferences_action, ["<primary>comma"])
 
     def do_activate(self):
         """Called when the application is activated.
@@ -69,6 +69,7 @@ class NotyApplication(Adw.Application):
             developers=["Dagim G. Astatkie"],
             copyright="© 2025 Dagim G. Astatkie",
             issue_url="https://github.com/dagimg-dot/noty/issues",
+            website="https://github.com/dagimg-dot/noty",
         )
         about.present(self.props.active_window)
 
