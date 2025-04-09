@@ -1,4 +1,4 @@
-application_id = 'com.dagimg.noty'
+application_id = get_option('application_id')
 
 scalable_dir = 'hicolor' / 'scalable' / 'apps'
 install_data(
