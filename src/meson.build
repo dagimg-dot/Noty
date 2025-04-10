@@ -9,7 +9,7 @@ app_version = meson.project_version()
 blueprints = custom_target(
   'blueprints',
   input: files(
-    'gtk/help-overlay.blp',
+    'ui/help-overlay.blp',
     'ui/note_list_item.blp',
     'ui/window.blp',
     'ui/preferences.blp',

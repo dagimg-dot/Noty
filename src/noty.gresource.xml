@@ -2,7 +2,7 @@
 <gresources>
   <gresource prefix="/com/dagimg/noty">
     <file preprocess="xml-stripblanks">ui/window.ui</file>
-    <file preprocess="xml-stripblanks">gtk/help-overlay.ui</file>
+    <file preprocess="xml-stripblanks">ui/help-overlay.ui</file>
     <file preprocess="xml-stripblanks">ui/note_list_item.ui</file>
     <file preprocess="xml-stripblanks">ui/preferences.ui</file>
   </gresource>
