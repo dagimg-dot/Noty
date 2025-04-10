@@ -52,7 +52,7 @@ flatpak install noty.flatpak
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/dagimg/noty.git
+    git clone https://github.com/dagimg-dot/noty.git
     cd noty
     ```
 2.  **Build, Install and Run:**
@@ -63,9 +63,11 @@ flatpak install noty.flatpak
     ```
 
     Or directly:
+
     ```bash
     make install
     ```
+
     ```bash
     build/bin/noty
     ```
