@@ -66,11 +66,12 @@ class NotyApplication(Adw.Application):
 
     def on_about_action(self, *args):
         """Callback for the app.about action."""
+        is_dev = APPLICATION_ID == "com.dagimg.dev.noty"
         about = Adw.AboutDialog(
             application_name="Noty",
             application_icon=APPLICATION_ID,
             developer_name="Dagim G. Astatkie",
-            version=VERSION,
+            version=VERSION if not is_dev else "dev",
             developers=["Dagim G. Astatkie"],
             copyright="© 2025 Dagim G. Astatkie",
             issue_url="https://github.com/dagimg-dot/noty/issues",
