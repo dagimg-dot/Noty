@@ -1,21 +1,26 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/dagimg-dot/noty/main/data/icons/hicolor/scalable/apps/com.dagimg.noty.svg" width="100">
   <h1 align="center">Noty</h1>
-  <p align="center">A minimal keyboard driven note appcation</p>
+  <p align="center">A minimal keyboard driven note taking application</p>
+  <p>
+  <a href="https://github.com/dagimg-dot/noty/releases/latest">
+    <img src="https://img.shields.io/github/v/release/dagimg-dot/noty?label=version" alt="Latest Release">
+  </a>
+  <a href="https://github.com/dagimg-dot/noty/releases/latest">
+    <img src="https://img.shields.io/github/downloads/dagimg-dot/noty/latest/total?label=downloads" alt="Downloads">
+  </a>
+  </p>
 </div>
 
 <div align="center">
-  <img src="
-  https://i.ibb.co/352fBR7r/Screenshot-From-2025-04-09-21-49-52.png
-https://i.ibb.co/gbZr6ks5/Screenshot-From-2025-04-09-21-50-26.png
-  " width="300">
+  <img src="https://i.ibb.co/352fBR7r/Screenshot-From-2025-04-09-21-49-52.png" width="300">
+  <img src="https://i.ibb.co/gbZr6ks5/Screenshot-From-2025-04-09-21-50-26.png" width="300">
 </div>
 
 ## Features
 
 - **Minimal Interface:** Focus on your notes without distractions.
 - **Keyboard Driven:** Designed primarily for mouse-free operation.
-- **Markdown Support:** Write notes using standard Markdown syntax.
 - **Plain Text:** Simple text format is also supported.
 
 ## Installation
@@ -34,10 +39,10 @@ flatpak install noty.flatpak
 
 - Meson (`>= 1.0.0`)
 - Ninja
-- GTK4 (`>= 4.10`)
-- Libadwaita (`>= 1.4`)
-- Python 3 (`>= 3.6`) # dependency of ./noty
-- blueprint-compiler (`>= 0.8.1`)
+- GTK4
+- Libadwaita
+- Python 3 # dependency of ./noty
+- blueprint-compiler (`>= 0.16.0`)
 - glib-compile-schemas
 - desktop-file-utils
 
@@ -50,32 +55,29 @@ flatpak install noty.flatpak
     git clone https://github.com/dagimg/noty.git
     cd noty
     ```
-2.  **Build and Install:**
+2.  **Build, Install and Run:**
     The `Makefile` provides convenient targets:
 
     ```bash
-    # Build the project
-    make build
-
-    # Install the built artifacts (needed for running)
-    make install
-    ```
-
-3.  **Run:**
-    ```bash
-    # Run the development version
     make run
     ```
+
     Or directly:
+    ```bash
+    make install
+    ```
     ```bash
     build/bin/noty
     ```
+
+> **Note:** Check `Makefile` for more targets.
 
 ## TODO
 
 - [ ] Note name update
 - [ ] Note deletion
 - [ ] Custom color scheme picker
+- [ ] Full markdown support
 
 ## License
 
