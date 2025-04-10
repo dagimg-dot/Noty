@@ -45,4 +45,4 @@ release: bump
 	@echo "Creating and pushing tag v$(VERSION)..."
 	git tag v$(VERSION)
 	git push origin v$(VERSION)
-	@echo "Tag v$(VERSION) created and pushed. GitHub Actions workflow should start automatically.
+	@echo "Tag v$(VERSION) created and pushed. GitHub Actions workflow should start automatically."
