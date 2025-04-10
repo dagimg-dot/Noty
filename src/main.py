@@ -75,7 +75,7 @@ class NotyApplication(Adw.Application):
             application_name="Noty",
             application_icon=APPLICATION_ID,
             developer_name="Dagim G. Astatkie",
-            version=VERSION if not is_dev else "dev",
+            version=VERSION if not is_dev else f"{VERSION}-dev",
             developers=["Dagim G. Astatkie"],
             copyright="© 2025 Dagim G. Astatkie",
             issue_url="https://github.com/dagimg-dot/noty/issues",
