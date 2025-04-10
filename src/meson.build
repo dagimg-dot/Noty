@@ -70,6 +70,7 @@ configure_file(
 noty_sources_main = [
   'windows/window.py',
   'windows/preferences.py',
+  'windows/help_overlay.py',
 ]
 
 noty_sources_services = [

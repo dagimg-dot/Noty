@@ -1,6 +1,6 @@
 using Gtk 4.0;
 
-ShortcutsWindow help_overlay {
+template $HelpOverlay: ShortcutsWindow {
   modal: true;
 
   ShortcutsSection {
@@ -8,16 +8,76 @@ ShortcutsWindow help_overlay {
     max-height: 10;
 
     ShortcutsGroup {
-      title: C_("shortcut window", "General");
+      visible: true;
 
       ShortcutsShortcut {
-        title: C_("shortcut window", "Show Shortcuts");
-        action-name: "win.show-help-overlay";
+        visible: true;
+        accelerator: "<Control>question";
+        title: _("Open Keyboard Shortcuts");
       }
 
       ShortcutsShortcut {
-        title: C_("shortcut window", "Quit");
-        action-name: "app.quit";
+        visible: true;
+        accelerator: "<Control>comma";
+        title: _("Open Preferences");
+      }
+
+      ShortcutsShortcut {
+        visible: true;
+        accelerator: "<Control>q";
+        title: _("Quit");
+      }
+    }
+
+    ShortcutsGroup {
+      visible: true;
+      title: _("Search bar");
+
+      ShortcutsShortcut {
+        visible: true;
+        accelerator: "Down <Control>J";
+        title: _("Move to first item in notes list");
+      }
+
+      ShortcutsShortcut {
+        visible: true;
+        accelerator: "Up <Control>K";
+        title: _("Move to last item in notes list");
+      }
+
+      ShortcutsShortcut {
+        visible: true;
+        accelerator: "Return";
+        title: _("Open or create note with specified\nname and move to editor");
+      }
+    }
+
+    ShortcutsGroup {
+      visible: true;
+      title: _("Notes list");
+
+      ShortcutsShortcut {
+        visible: true;
+        accelerator: "Up <Control>K";
+        title: _("Select previous note");
+      }
+
+      ShortcutsShortcut {
+        visible: true;
+        accelerator: "Down <Control>J";
+        title: _("Select next note");
+      }
+
+      ShortcutsShortcut {
+        visible: true;
+        accelerator: "Escape";
+        title: _("Move to the search bar");
+      }
+
+      ShortcutsShortcut {
+        visible: true;
+        accelerator: "Return";
+        title: _("Open selected note");
       }
     }
   }

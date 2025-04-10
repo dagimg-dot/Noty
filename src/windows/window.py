@@ -209,7 +209,9 @@ class NotyWindow(Adw.ApplicationWindow):
             list_item.get_child().bind_to_note(note_object)
             logger.debug(f"Factory Bind: {note_object.get_name()}")  # Debug
         else:
-            logger.warning("Factory Bind: Item/Widget type mismatch or missing")  # Debug
+            logger.warning(
+                "Factory Bind: Item/Widget type mismatch or missing"
+            )  # Debug
 
     def _on_factory_unbind(self, factory, list_item):
         note_object = list_item.get_item()
@@ -217,7 +219,9 @@ class NotyWindow(Adw.ApplicationWindow):
             list_item.get_child().unbind(note_object)
             logger.debug(f"Factory Unbind: {note_object.get_name()}")  # Debug
         else:
-            logger.warning("Factory Unbind: Item/Widget type mismatch or missing")  # Debug
+            logger.warning(
+                "Factory Unbind: Item/Widget type mismatch or missing"
+            )  # Debug
 
     # --- Signal Handlers ---
 
@@ -475,7 +479,9 @@ class NotyWindow(Adw.ApplicationWindow):
     def on_close_request(self, *args):
         logger.info("Window closing - saving files")
         if self.file_manager.currently_open_path:
-            logger.info(f"Saving file before exit: {self.file_manager.currently_open_path}")
+            logger.info(
+                f"Saving file before exit: {self.file_manager.currently_open_path}"
+            )
             current_content = self.source_buffer.get_text(
                 self.source_buffer.get_start_iter(),
                 self.source_buffer.get_end_iter(),
