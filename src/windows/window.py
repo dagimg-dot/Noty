@@ -132,6 +132,19 @@ class NotyWindow(Adw.ApplicationWindow):
         """Track that the selection was made by mouse"""
         self._selection_from_keyboard = False
 
+    def _select_first_child(self):
+        self.selection_model.set_selected(0)
+        first_item = self.notes_list_view.get_first_child()
+        if first_item:
+            first_item.grab_focus()
+
+    def _select_last_child(self):
+        n_items = self.sort_model.get_n_items()
+        self.selection_model.set_selected(n_items - 1)
+        last_item = self.notes_list_view.get_last_child()
+        if last_item:
+            last_item.grab_focus()
+
     def _on_list_key_pressed(self, controller, keyval, keycode, state):
         if keyval in (
             Gdk.KEY_Up,
@@ -148,25 +161,47 @@ class NotyWindow(Adw.ApplicationWindow):
         if n_items == 0:
             return False
 
+        # Handle Ctrl+J/K for list navigation
+        ctrl_pressed = state & Gdk.ModifierType.CONTROL_MASK
+
+        if ctrl_pressed and (keyval == Gdk.KEY_j or keyval == Gdk.KEY_k):
+            self._selection_from_keyboard = True
+            selected_pos = self.selection_model.get_selected()
+
+            if keyval == Gdk.KEY_j:
+                if selected_pos < n_items - 1:
+                    self.selection_model.set_selected(selected_pos + 1)
+                    self.notes_list_view.scroll_to(
+                        selected_pos + 1, Gtk.ListScrollFlags.FOCUS, None
+                    )
+                else:
+                    self._select_first_child()
+                return True
+            elif keyval == Gdk.KEY_k:
+                if selected_pos > 0:
+                    self.selection_model.set_selected(selected_pos - 1)
+                    self.notes_list_view.scroll_to(
+                        selected_pos - 1, Gtk.ListScrollFlags.FOCUS, None
+                    )
+                else:
+                    self._select_last_child()
+
+                return True
+
         if keyval == Gdk.KEY_Escape:
             self._search_entry_focus()
             return True
         elif keyval == Gdk.KEY_Up:
             selected_pos = self.selection_model.get_selected()
             if selected_pos == 0:
-                self.selection_model.set_selected(n_items - 1)
-                last_item = self.notes_list_view.get_last_child()
-                if last_item:
-                    last_item.grab_focus()
+                self._select_last_child()
                 return True
         elif keyval == Gdk.KEY_Down:
             selected_pos = self.selection_model.get_selected()
             if selected_pos == n_items - 1:
-                self.selection_model.set_selected(0)
-                first_item = self.notes_list_view.get_first_child()
-                if first_item:
-                    first_item.grab_focus()
+                self._select_first_child()
                 return True
+
         return False
 
     def _on_search_key_pressed(self, controller, keyval, keycode, state):
@@ -177,17 +212,20 @@ class NotyWindow(Adw.ApplicationWindow):
         if n_items == 0:
             return False
 
+        ctrl_pressed = state & Gdk.ModifierType.CONTROL_MASK
+
+        if ctrl_pressed and (keyval == Gdk.KEY_j or keyval == Gdk.KEY_k):
+            if keyval == Gdk.KEY_j:
+                self._select_first_child()
+            elif keyval == Gdk.KEY_k:
+                self._select_last_child()
+            return True
+
         if keyval == Gdk.KEY_Down:
-            self.selection_model.set_selected(0)
-            first_item = self.notes_list_view.get_first_child()
-            if first_item:
-                first_item.grab_focus()
+            self._select_first_child()
             return True
         elif keyval == Gdk.KEY_Up:
-            self.selection_model.set_selected(n_items - 1)
-            last_item = self.notes_list_view.get_last_child()
-            if last_item:
-                last_item.grab_focus()
+            self._select_last_child()
             return True
         return False
 
@@ -474,6 +512,12 @@ class NotyWindow(Adw.ApplicationWindow):
         for i in range(self.sort_model.get_n_items()):
             if self.sort_model.get_item(i) == item_to_find:
                 return i
+        return None
+
+    def _find_position_by_index(self, index):
+        for i in range(self.sort_model.get_n_items()):
+            if i == index:
+                return self.sort_model.get_item(i)
         return None
 
     def on_close_request(self, *args):
