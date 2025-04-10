@@ -1,10 +1,10 @@
 [Desktop Entry]
-Name=noty
+Name=Noty
 Exec=noty
 Icon=com.dagimg.noty
 Terminal=false
 Type=Application
 Categories=Utility;
-Keywords=GTK;
+Keywords=Note,TextEditor;
 StartupNotify=true
 DBusActivatable=true
