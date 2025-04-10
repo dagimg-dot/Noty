@@ -120,6 +120,7 @@ class NotyApplication(Adw.Application):
             self.set_accels_for_action(f"app.{name}", shortcuts)
 
     def _initialize_theme(self):
+        """Initialize the theme based on the user's preferences."""
         style_manager = Adw.StyleManager.get_default()
         theme = self.confman.conf.get("theme", "system")
 
@@ -146,59 +147,44 @@ class NotyApplication(Adw.Application):
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Noty - A simple note-taking application", 
-        add_help=True
+        description="Noty - A simple note-taking application", add_help=True
     )
 
-    # Add logging arguments
+    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    parser.add_argument("--log-file", help="Path to the log file")
     parser.add_argument(
-        "--debug", 
-        action="store_true", 
-        help="Enable debug logging"
-    )
-    parser.add_argument(
-        "--log-file", 
-        help="Path to the log file"
-    )
-    parser.add_argument(
-        "--log-level", 
+        "--log-level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         default="WARNING",
-        help="Set the logging level"
+        help="Set the logging level",
     )
 
     # Parse only our known arguments, ignoring GTK ones
     args, unknown_args = parser.parse_known_args()
-    
-    # Print unknown arguments for debugging
+
     if args.debug and unknown_args:
-        print(f"Note: Ignoring unknown arguments: {unknown_args}")
-        
+        logger.warning(f"Ignoring unknown arguments: {unknown_args}")
+
     return args
 
 
 def main(version):
     """The application's entry point."""
-    # Get our clean arguments without processing GTK args
     args = parse_args()
-    
-    # Configure logging based on command line arguments
+
     log_level = getattr(logging, args.log_level)
     if args.debug:
         log_level = logging.DEBUG
-    
-    # Pass only known args to our app
+
     argv = [sys.argv[0]]
-    
-    # Setup logging
+
     logger.setup_logging(
-        level=log_level, 
-        log_to_file=bool(args.log_file), 
-        log_file=args.log_file
+        level=log_level, log_to_file=bool(args.log_file), log_file=args.log_file
     )
-    
+
     logger.info(f"Starting Noty {version}")
-    
+
     app = NotyApplication()
+
     # Pass a clean argv to avoid GTK parsing our debug flags
     return app.run(argv)
