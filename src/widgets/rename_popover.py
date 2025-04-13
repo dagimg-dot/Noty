@@ -1,4 +1,4 @@
-from gi.repository import Gtk  # type: ignore
+from gi.repository import Gtk, GObject  # type: ignore
 from ..services.file_manager import FileManager
 from ..services.conf_manager import ConfManager
 from ..utils import logger
@@ -8,6 +8,10 @@ import os
 @Gtk.Template(resource_path="/com/dagimg/noty/ui/rename_popover.ui")
 class RenamePopover(Gtk.Popover):
     __gtype_name__ = "RenamePopover"
+
+    __gsignals__ = {
+        "rename-success": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
+    }
 
     rename_entry = Gtk.Template.Child()
     rename_error_revealer = Gtk.Template.Child()
@@ -70,6 +74,7 @@ class RenamePopover(Gtk.Popover):
         if success:
             logger.info(f"Renamed note to {new_name}")
             self.current_note.update_after_rename(new_file_path)
+            self.emit("rename-success", new_name)
             self.popdown()
         else:
             self.rename_error_label.set_text("Failed to rename note")

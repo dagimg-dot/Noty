@@ -268,8 +268,17 @@ class NotyWindow(Adw.ApplicationWindow):
     # --- ListView Factory Callbacks ---
 
     def _on_factory_setup(self, factory, list_item):
-        list_item.set_child(NoteListItem())
+        note_list_item = NoteListItem()
+        list_item.set_child(note_list_item)
+
+        note_list_item.rename_popover.connect("rename-success", self._on_rename_success)
+
         logger.debug("Factory Setup (Widget created)")  # Debug
+
+    def _on_rename_success(self, popover, new_name):
+        toast = Adw.Toast.new(f"Note renamed to '{new_name}'")
+        toast.set_timeout(3)
+        self.toast_overlay.add_toast(toast)
 
     def _on_factory_bind(self, factory, list_item):
         note_object = list_item.get_item()
