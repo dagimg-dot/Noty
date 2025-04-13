@@ -1,4 +1,4 @@
-from gi.repository import Gtk, Gdk, Gio  # type: ignore
+from gi.repository import Gtk, Gdk, Gio, GObject  # type: ignore
 from ..utils import logger
 from .rename_popover import RenamePopover
 
@@ -7,6 +7,10 @@ from .rename_popover import RenamePopover
 class NoteListItem(Gtk.Box):
     __gtype_name__ = "NoteListItem"
 
+    __gsignals__ = {
+        "delete-requested": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+    }
+
     note_name_label = Gtk.Template.Child()
 
     def __init__(self):
@@ -14,6 +18,7 @@ class NoteListItem(Gtk.Box):
         self.note_object = None
 
         self._setup_click_gesture()
+        self._setup_actions()
 
         self.rename_popover = RenamePopover()
         self.rename_popover.set_parent(self)
@@ -23,6 +28,19 @@ class NoteListItem(Gtk.Box):
         self.click_gesture.set_button(Gdk.BUTTON_SECONDARY)
         self.click_gesture.connect("pressed", self._on_right_click)
         self.add_controller(self.click_gesture)
+
+    def _setup_actions(self):
+        action_group = Gio.SimpleActionGroup.new()
+
+        rename_action = Gio.SimpleAction.new("rename", None)
+        rename_action.connect("activate", self._on_rename_action_activated)
+        action_group.add_action(rename_action)
+
+        delete_action = Gio.SimpleAction.new("delete", None)
+        delete_action.connect("activate", self._on_delete_action_activated)
+        action_group.add_action(delete_action)
+
+        self.insert_action_group("item", action_group)
 
     def _on_right_click(self, gesture, n_press, x, y):
         popover = Gtk.PopoverMenu.new_from_model(self._create_context_menu())
@@ -44,12 +62,25 @@ class NoteListItem(Gtk.Box):
         rename_action = Gio.MenuItem.new("Rename", "item.rename")
         menu.append_item(rename_action)
 
+        delete_action = Gio.MenuItem.new("Delete", "item.delete")
+        menu.append_item(delete_action)
+
         return menu
+
+    def _request_delete(self):
+        if self.note_object:
+            self.emit("delete-requested", self.note_object)
 
     def _show_rename_popover(self):
         if self.note_object:
             self.rename_popover.set_note(self.note_object)
             self.rename_popover.popup()
+
+    def _on_rename_action_activated(self, action, param):
+        self._show_rename_popover()
+
+    def _on_delete_action_activated(self, action, param):
+        self._request_delete()
 
     def bind_to_note(self, note_object):
         self.note_object = note_object

@@ -4,6 +4,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
 from gi.repository import Adw, Gtk, Gdk, Gio  # type: ignore # noqa: E402
+from gettext import gettext as _  # noqa: E402
 from ..services.file_manager import FileManager  # noqa: E402
 from ..services.conf_manager import ConfManager  # noqa: E402
 from ..models.note import Note  # noqa: E402
@@ -178,6 +179,12 @@ class NotyWindow(Adw.ApplicationWindow):
         if n_items == 0:
             return False
 
+        if keyval == Gdk.KEY_Delete or keyval == Gdk.KEY_BackSpace:
+            selected_item = self.selection_model.get_selected_item()
+            if selected_item and isinstance(selected_item, Note):
+                self._show_delete_confirmation(selected_item)
+                return True
+
         # Handle Ctrl+J/K for list navigation
         ctrl_pressed = state & Gdk.ModifierType.CONTROL_MASK
 
@@ -272,6 +279,7 @@ class NotyWindow(Adw.ApplicationWindow):
         list_item.set_child(note_list_item)
 
         note_list_item.rename_popover.connect("rename-success", self._on_rename_success)
+        note_list_item.connect("delete-requested", self._on_note_delete_requested)
 
         logger.debug("Factory Setup (Widget created)")  # Debug
 
@@ -279,6 +287,9 @@ class NotyWindow(Adw.ApplicationWindow):
         toast = Adw.Toast.new(f"Note renamed to '{new_name}'")
         toast.set_timeout(3)
         self.toast_overlay.add_toast(toast)
+
+    def _on_note_delete_requested(self, note_list_item, note_object):
+        self._show_delete_confirmation(note_object)
 
     def _on_factory_bind(self, factory, list_item):
         note_object = list_item.get_item()
@@ -552,22 +563,62 @@ class NotyWindow(Adw.ApplicationWindow):
         return True
 
     def _setup_list_actions(self):
-        """Set up actions for the context menu."""
         action_group = Gio.SimpleActionGroup.new()
 
-        # Add rename action
         rename_action = Gio.SimpleAction.new("rename", None)
         rename_action.connect("activate", self._on_rename_action)
         action_group.add_action(rename_action)
 
-        # Insert other actions later (delete, etc.)
+        delete_action = Gio.SimpleAction.new("delete", None)
+        delete_action.connect("activate", self._on_delete_action)
+        action_group.add_action(delete_action)
 
-        # Add the action group to the list view
         self.notes_list_view.insert_action_group("item", action_group)
 
     def _on_rename_action(self, action, param):
-        """Handle the rename action from the context menu."""
         selected_item = self.selection_model.get_selected_item()
         if selected_item and isinstance(selected_item, Note):
-            note_list_item: Gtk.Box = self.get_list_item()
+            note_list_item = self.get_list_item()
             note_list_item._show_rename_popover()
+
+    def _on_delete_action(self, action, param):
+        selected_item = self.selection_model.get_selected_item()
+        if selected_item and isinstance(selected_item, Note):
+            self._show_delete_confirmation(selected_item)
+
+    def _show_delete_confirmation(self, note_object):
+        dialog = Adw.MessageDialog.new(
+            self,
+            _("Delete Note?"),
+            _(
+                "Are you sure you want to delete '{}'? This action cannot be undone."
+            ).format(note_object.get_name()),
+        )
+
+        dialog.add_response("cancel", _("Cancel"))
+        dialog.add_response("delete", _("Delete"))
+        dialog.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE)
+        dialog.set_default_response("cancel")
+        dialog.set_close_response("cancel")
+
+        dialog.connect("response", self._on_delete_dialog_response, note_object)
+        dialog.present()
+
+    def _on_delete_dialog_response(self, dialog, response, note_object):
+        if response == "delete":
+            was_open_note = (
+                self.file_manager.currently_open_path == note_object.get_file_path()
+            )
+
+            success = self.file_manager.delete_note_by_path(note_object.get_file_path())
+            if success:
+                toast = Adw.Toast.new(f"Note '{note_object.get_name()}' deleted")
+                toast.set_timeout(3)
+                self.toast_overlay.add_toast(toast)
+
+                if was_open_note:
+                    self.source_buffer.set_text("")
+                    self.text_editor.set_sensitive(False)
+                    self._search_entry_focus()
+
+        dialog.destroy()
