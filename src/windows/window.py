@@ -22,8 +22,6 @@ class NotyWindow(Adw.ApplicationWindow):
     text_editor: Gtk.TextView = Gtk.Template.Child()
     notes_list_container: Gtk.Box = Gtk.Template.Child()
     toast_overlay: Adw.ToastOverlay = Gtk.Template.Child()
-    external_change_revealer: Gtk.Revealer = Gtk.Template.Child()
-    external_change_banner: Adw.Banner = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

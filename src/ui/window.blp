@@ -34,17 +34,6 @@ template $NotyWindow: Adw.ApplicationWindow {
     }
 
     Adw.ToastOverlay toast_overlay {
-      Revealer external_change_revealer {
-        reveal-child: false;
-        transition-type: slide_down;
-        transition-duration: 200;
-
-        child: Adw.Banner external_change_banner {
-          title: _("File changed externally");
-          button-label: _("Reload");
-        };
-      }
-
       child: Box {
         orientation: vertical;
 
