@@ -13,6 +13,7 @@ blueprints = custom_target(
     'ui/note_list_item.blp',
     'ui/window.blp',
     'ui/preferences.blp',
+    'ui/rename_popover.blp',
   ),
   output: '.',
   command: [
@@ -84,6 +85,7 @@ noty_sources_models = [
 
 noty_sources_widgets = [
   'widgets/note_list_item.py',
+  'widgets/rename_popover.py'
 ]
 
 noty_sources_utils = [

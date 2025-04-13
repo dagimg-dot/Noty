@@ -1,0 +1,54 @@
+using Gtk 4.0;
+
+template $RenamePopover: Gtk.Popover {
+    child: Box {
+        orientation: vertical;
+        spacing: 8;
+        margin-start: 12;
+        margin-end: 12;
+        margin-top: 12;
+        margin-bottom: 12;
+
+        Entry rename_entry {
+            hexpand: true;
+            width-request: 200;
+            activates-default: true;
+            placeholder-text: _("New name");
+        }
+
+        Revealer rename_error_revealer {
+            reveal-child: false;
+            transition-type: slide_down;
+            transition-duration: 200;
+
+            Box {
+                orientation: horizontal;
+                
+                Label rename_error_label {
+                    label: _("Name already exists");
+                    margin-top: 4;
+                    margin-bottom: 4;
+                    styles ["error"]
+                }
+            }
+        }
+
+        Box {
+            orientation: horizontal;
+            homogeneous: true;
+            spacing: 8;
+            margin-top: 6;
+
+            Button rename_cancel_btn {
+                label: _("Cancel");
+            }
+
+            Button rename_confirm_btn {
+                label: _("Rename");
+                receives-default: true;
+                styles ["suggested-action"]
+            }
+        }
+    };
+}
+

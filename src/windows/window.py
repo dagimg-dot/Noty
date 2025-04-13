@@ -3,7 +3,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, Gtk, Gdk  # type: ignore # noqa: E402
+from gi.repository import Adw, Gtk, Gdk, Gio  # type: ignore # noqa: E402
 from ..services.file_manager import FileManager  # noqa: E402
 from ..services.conf_manager import ConfManager  # noqa: E402
 from ..models.note import Note  # noqa: E402
@@ -80,6 +80,9 @@ class NotyWindow(Adw.ApplicationWindow):
         click_controller.connect("pressed", self._on_listview_click)
         self.notes_list_view.add_controller(click_controller)
 
+        # Add actions for context menu
+        self._setup_list_actions()
+
     def _setup_key_controllers(self):
         list_key_controller = Gtk.EventControllerKey.new()
         list_key_controller.connect("key-pressed", self._on_list_key_pressed)
@@ -122,6 +125,9 @@ class NotyWindow(Adw.ApplicationWindow):
             self.source_buffer.get_end_iter(),
             True,
         )
+
+    def get_list_item(self):
+        return self.notes_list_view.get_focus_child().get_first_child()
 
     def save_content(self):
         if self.file_manager.currently_open_path:
@@ -175,7 +181,9 @@ class NotyWindow(Adw.ApplicationWindow):
         # Handle Ctrl+J/K for list navigation
         ctrl_pressed = state & Gdk.ModifierType.CONTROL_MASK
 
-        if ctrl_pressed and (keyval == Gdk.KEY_j or keyval == Gdk.KEY_k):
+        if ctrl_pressed and (
+            keyval == Gdk.KEY_j or keyval == Gdk.KEY_k or keyval == Gdk.KEY_r
+        ):
             self._selection_from_keyboard = True
             selected_pos = self.selection_model.get_selected()
 
@@ -196,7 +204,12 @@ class NotyWindow(Adw.ApplicationWindow):
                     )
                 else:
                     self._select_last_child()
-
+                return True
+            elif keyval == Gdk.KEY_r:
+                selected_item = self.selection_model.get_selected_item()
+                if selected_item and isinstance(selected_item, Note):
+                    note_list_item = self.get_list_item()
+                    note_list_item._show_rename_popover()
                 return True
 
         if keyval == Gdk.KEY_Escape:
@@ -212,6 +225,12 @@ class NotyWindow(Adw.ApplicationWindow):
             if selected_pos == n_items - 1:
                 self._select_first_child()
                 return True
+
+        if keyval == Gdk.KEY_F2:
+            selected_item = self.selection_model.get_selected_item()
+            if selected_item and isinstance(selected_item, Note):
+                note_list_item = self.get_list_item()
+                note_list_item._show_rename_popover()
 
         return False
 
@@ -520,3 +539,24 @@ class NotyWindow(Adw.ApplicationWindow):
             self.save_content()
         self.hide()
         return True
+
+    def _setup_list_actions(self):
+        """Set up actions for the context menu."""
+        action_group = Gio.SimpleActionGroup.new()
+
+        # Add rename action
+        rename_action = Gio.SimpleAction.new("rename", None)
+        rename_action.connect("activate", self._on_rename_action)
+        action_group.add_action(rename_action)
+
+        # Insert other actions later (delete, etc.)
+
+        # Add the action group to the list view
+        self.notes_list_view.insert_action_group("item", action_group)
+
+    def _on_rename_action(self, action, param):
+        """Handle the rename action from the context menu."""
+        selected_item = self.selection_model.get_selected_item()
+        if selected_item and isinstance(selected_item, Note):
+            note_list_item: Gtk.Box = self.get_list_item()
+            note_list_item._show_rename_popover()
