@@ -344,6 +344,8 @@ class NotyWindow(Adw.ApplicationWindow):
             if self.filter_model.get_filter():
                 self.filter_model.set_filter(None)
         else:
+            self._selection_from_keyboard = True
+
             note_filter = Gtk.CustomFilter.new(self._filter_notes, query)
             self.filter_model.set_filter(note_filter)
 
