@@ -118,6 +118,19 @@ class NotyWindow(Adw.ApplicationWindow):
         )
         self.confman.connect("sorting_method_changed", self._on_sorting_method_changed)
 
+    def get_content(self):
+        return self.source_buffer.get_text(
+            self.source_buffer.get_start_iter(),
+            self.source_buffer.get_end_iter(),
+            True,
+        )
+
+    def save_content(self):
+        if self.file_manager.currently_open_path:
+            self.file_manager.save_note_content(
+                self.file_manager.currently_open_path, self.get_content()
+            )
+
     def _on_search_focus_changed(self, widget, pspec):
         if widget.has_focus():
             self.results_list_revealer.set_reveal_child(True)
@@ -292,15 +305,7 @@ class NotyWindow(Adw.ApplicationWindow):
             self.file_manager.currently_open_path = None
             return
 
-        if self.file_manager.currently_open_path:
-            current_content = self.source_buffer.get_text(
-                self.source_buffer.get_start_iter(),
-                self.source_buffer.get_end_iter(),
-                True,
-            )
-            self.file_manager.save_note_content(
-                self.file_manager.currently_open_path, current_content
-            )
+        self.save_content()
 
         content = self.file_manager.load_note_content(note_object.get_file_path())
         self.source_buffer.handler_block_by_func(self._on_buffer_changed)
@@ -358,15 +363,7 @@ class NotyWindow(Adw.ApplicationWindow):
     def _on_editor_focus_changed(self, widget, param):
         if not widget.has_focus():
             logger.debug("Editor Focus Lost - Saving")  # Debug
-            if self.file_manager.currently_open_path:
-                content = self.source_buffer.get_text(
-                    self.source_buffer.get_start_iter(),
-                    self.source_buffer.get_end_iter(),
-                    True,
-                )
-                self.file_manager.save_note_content(
-                    self.file_manager.currently_open_path, content
-                )
+            self.save_content()
             self.results_list_revealer.set_reveal_child(True)
         else:
             logger.debug("Editor Focus Gained - Hiding Revealer")  # Debug
@@ -428,11 +425,7 @@ class NotyWindow(Adw.ApplicationWindow):
 
     def _on_dismiss_toast(self, toast):
         if hasattr(self, "_externally_changed_path") and self._externally_changed_path:
-            current_content = self.source_buffer.get_text(
-                self.source_buffer.get_start_iter(),
-                self.source_buffer.get_end_iter(),
-                True,
-            )
+            current_content = self.get_content()
 
             self.file_manager.save_note_content(
                 self._externally_changed_path, current_content, overwrite_external=True
@@ -526,13 +519,6 @@ class NotyWindow(Adw.ApplicationWindow):
             logger.info(
                 f"Saving file before exit: {self.file_manager.currently_open_path}"
             )
-            current_content = self.source_buffer.get_text(
-                self.source_buffer.get_start_iter(),
-                self.source_buffer.get_end_iter(),
-                True,
-            )
-            self.file_manager.save_note_content(
-                self.file_manager.currently_open_path, current_content
-            )
+            self.save_content()
         self.hide()
         return True
