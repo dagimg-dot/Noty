@@ -21,7 +21,8 @@
 
 - **Minimal Interface:** Focus on your notes without distractions.
 - **Keyboard Driven:** Designed primarily for mouse-free operation.
-- **Plain Text:** Simple text format is also supported.
+- **Flatpak:** Easy installation and updates.
+- **External change detection:** Automatically reload notes when changed outside the app.
 
 ## Installation
 
@@ -31,6 +32,12 @@ Flatpak bundles are available from the [GitHub Releases page](https://github.com
 
 ```bash
 flatpak install noty.flatpak
+```
+
+### Updating
+
+```bash
+flatpak install --or-update noty.flatpak
 ```
 
 ### Building from Source
@@ -76,10 +83,11 @@ flatpak install noty.flatpak
 
 ## TODO
 
-- [ ] Note name update
-- [ ] Note deletion
-- [ ] Custom color scheme picker
+- [x] Rename note
+- [x] Note deletion
 - [ ] Full markdown support
+- [ ] Custom color scheme picker
+- [ ] Custom font picker
 
 ## License
 
