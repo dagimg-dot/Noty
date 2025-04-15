@@ -67,11 +67,14 @@ flatpak install --or-update noty.flatpak
 
 - Meson (`>= 1.0.0`)
 - Ninja
-- GTK4 and Libadwaita
+- GTK4 and Libadwaita (including development and introspection packages)
+  - For Ubuntu/Debian: `libgtk-4-dev gir1.2-gtk-4.0 libadwaita-1-dev gobject-introspection libgirepository1.0-dev`
+  - For Fedora: `gtk4-devel libadwaita-devel gobject-introspection-devel`
+  - For Arch: `gtk4 libadwaita gobject-introspection`
 - Python 3
 - Blueprint Compiler (`>= 0.16.0`)
 
-**(Note:** Dependencies might vary slightly based on your distribution. You'll typically need the development packages, e.g., `libadwaita-devel` or `libadwaita-dev`.)\*
+**(Note:** Package names might vary slightly based on your distribution. You'll typically need both the runtime and development packages.)\*
 
 **Steps:**
 

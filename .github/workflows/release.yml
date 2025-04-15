@@ -17,7 +17,11 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y meson ninja-build python3-pip python3-dev
+          sudo apt-get install -y meson ninja-build python3-pip python3-dev gettext libglib2.0-dev-bin desktop-file-utils gobject-introspection libgtk-4-dev gir1.2-gtk-4.0 libadwaita-1-dev libgirepository1.0-dev
+      - name: Install python dependencies
+        run: |
+          pip install pygobject
+          pip install pygobject-stubs
       - name: Install blueprint-compiler from source
         run: |
           git clone https://gitlab.gnome.org/jwestman/blueprint-compiler
