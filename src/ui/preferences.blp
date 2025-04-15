@@ -9,6 +9,20 @@ template $PreferencesDialog: Adw.PreferencesDialog {
         title: _("General");
 
         Adw.PreferencesGroup {
+            title: _("Window");
+
+            Adw.ActionRow {
+                title: _("Remember Window Size");
+                subtitle: _("Save and restore the window size when closing and opening the app");
+                activatable-widget: switch_persist_window_size;
+
+                Switch switch_persist_window_size {
+                    valign: center;
+                }
+            }
+        }
+
+        Adw.PreferencesGroup {
             title: _("Storage");
 
             Adw.ActionRow notes_dir_row {

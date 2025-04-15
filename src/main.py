@@ -108,6 +108,15 @@ class NotyApplication(Adw.Application):
                 self.win.file_manager.save_note_content(
                     self.win.file_manager.currently_open_path, current_content
                 )
+
+                # Save window size if persistence is enabled
+                if self.confman.conf["persist_window_size"]:
+                    width, height = self.win.get_default_size()
+                    self.confman.conf["windowsize"]["width"] = width
+                    self.confman.conf["windowsize"]["height"] = height
+                    self.confman.save_conf()
+                    logger.info(f"Saving window size: {width}x{height}")
+
             except Exception as e:
                 logger.error(f"Error saving file before quit: {e}")
         self.quit()

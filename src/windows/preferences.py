@@ -19,6 +19,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
     btn_notes_dir: Gtk.Button = Gtk.Template.Child()
     btn_notes_dir_reset: Gtk.Button = Gtk.Template.Child()
     label_notes_dir: Gtk.Label = Gtk.Template.Child()
+    switch_persist_window_size: Gtk.Switch = Gtk.Template.Child()
     switch_recurse_subfolders: Gtk.Switch = Gtk.Template.Child()
     switch_use_file_extension: Gtk.Switch = Gtk.Template.Child()
     dropdown_sorting_method: Gtk.DropDown = Gtk.Template.Child()
@@ -43,6 +44,9 @@ class PreferencesDialog(Adw.PreferencesDialog):
 
         self.btn_notes_dir.connect("clicked", self.on_notes_dir_clicked)
         self.btn_notes_dir_reset.connect("clicked", self.on_notes_dir_reset)
+        self.switch_persist_window_size.connect(
+            "notify::active", self.on_persist_window_size_changed
+        )
         self.switch_recurse_subfolders.connect(
             "notify::active", self.on_recurse_subfolders_changed
         )
@@ -81,6 +85,9 @@ class PreferencesDialog(Adw.PreferencesDialog):
     def load_settings(self):
         self.label_notes_dir.set_label(os.path.basename(self.confman.conf["notes_dir"]))
         self.notes_dir_row.set_subtitle(self.confman.conf["notes_dir"])
+        self.switch_persist_window_size.set_active(
+            self.confman.conf["persist_window_size"]
+        )
         self.switch_recurse_subfolders.set_active(
             self.confman.conf["recurse_subfolders"]
         )
@@ -218,3 +225,9 @@ class PreferencesDialog(Adw.PreferencesDialog):
         self.confman.conf["font_size"] = value
         self.confman.save_conf()
         self.confman.emit("font_size_changed", value)
+
+    def on_persist_window_size_changed(self, switch, param):
+        active = switch.get_active()
+        self.confman.conf["persist_window_size"] = active
+        self.confman.save_conf()
+        self.confman.emit("persist_window_size_changed", active)

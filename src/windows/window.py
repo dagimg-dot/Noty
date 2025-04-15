@@ -31,9 +31,14 @@ class NotyWindow(Adw.ApplicationWindow):
         self.confman = ConfManager()
         self.file_manager = FileManager()
 
+        # Set initial window size from config if persistence is enabled
+        if self.confman.conf["persist_window_size"]:
+            width = self.confman.conf["windowsize"]["width"]
+            height = self.confman.conf["windowsize"]["height"]
+            self.set_default_size(width, height)
+
         # Create shared RenamePopover
         self.rename_popover = RenamePopover()
-        self.rename_popover.set_parent(self)
         self._rename_note_object = None
 
         # Flag to track selection method (keyboard vs mouse)
@@ -140,6 +145,9 @@ class NotyWindow(Adw.ApplicationWindow):
             "markdown_syntax_highlighting_changed", self._apply_editor_settings
         )
         self.confman.connect("sorting_method_changed", self._on_sorting_method_changed)
+        self.confman.connect(
+            "persist_window_size_changed", self._on_persist_window_size_changed
+        )
 
         # Rename Popover
         self.rename_popover.connect("rename-success", self._on_rename_success)
@@ -159,6 +167,14 @@ class NotyWindow(Adw.ApplicationWindow):
             self.file_manager.save_note_content(
                 self.file_manager.currently_open_path, self.get_content()
             )
+
+    def save_window_size(self, enabled=False):
+        if self.confman.conf["persist_window_size"] or enabled:
+            width, height = self.get_default_size()
+            self.confman.conf["windowsize"]["width"] = width
+            self.confman.conf["windowsize"]["height"] = height
+            self.confman.save_conf()
+            logger.info(f"Saving window size: {width}x{height}")
 
     def _on_search_focus_changed(self, widget, pspec):
         if widget.has_focus():
@@ -594,6 +610,9 @@ class NotyWindow(Adw.ApplicationWindow):
                 f"Saving file before exit: {self.file_manager.currently_open_path}"
             )
             self.save_content()
+
+        self.save_window_size()
+
         self.hide()
         return True
 
@@ -662,6 +681,15 @@ class NotyWindow(Adw.ApplicationWindow):
         """Show the shared rename popover for a note"""
         self._rename_note_object = note_object
         self.rename_popover.set_note(note_object)
+
+        current_parent = self.rename_popover.get_parent()
+        if current_parent:
+            self.rename_popover.unparent()
+
+        self.rename_popover.set_parent(widget)
         rect = widget.get_allocation()
         self.rename_popover.set_pointing_to(rect)
         self.rename_popover.popup()
+
+    def _on_persist_window_size_changed(self, confman, enabled):
+        self.save_window_size(enabled)
