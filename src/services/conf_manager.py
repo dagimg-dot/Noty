@@ -30,12 +30,14 @@ class ConfManagerSignaler(GObject.Object):
         "editor_color_scheme_changed": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
         "font_size_changed": (GObject.SignalFlags.RUN_FIRST, None, (int,)),
         "recurse_subfolders_changed": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
+        "persist_window_size_changed": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
     }
 
 
 class ConfManager(metaclass=singleton.Singleton):
     BASE_SCHEMA = {
-        "windowsize": {"width": 350, "height": 650},
+        "windowsize": {"width": 500, "height": 800},
+        "persist_window_size": True,
         "notes_dir": "{0}/{1}".format(documents_dir, _("Noties")),
         "show_markdown_syntax_highlighting": False,
         "theme": "system",
