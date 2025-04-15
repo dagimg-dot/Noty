@@ -34,22 +34,33 @@ Flatpak bundles are available from the [GitHub Releases page](https://github.com
 flatpak install noty-x.x.x.flatpak
 ```
 
-### II. Tar Archive
+### II. Binary Release (Not working currently)
 
-You can also install Noty from the tar archive available on the [GitHub Releases page](https://github.com/dagimg/noty/releases):
+You can download and run the pre-built binary from the [GitHub Releases page](https://github.com/dagimg/noty/releases):
 
-1. Download the latest `noty-x.x.x-linux-x86_64.tar.xz` file
+1. Download the latest `noty-x.x.x-linux-x86_64.tar.gz` file
 2. Extract the archive:
    ```bash
-   tar -xf noty-x.x.x-linux-x86_64.tar.xz
-   cd noty-x.x.x-linux-x86_64
+   tar -xf noty-x.x.x-linux-x86_64.tar.gz
+   cd noty-x.x.x
    ```
-3. Run:
+3. Install the files:
    ```bash
-   ./noty
+   sudo cp -r share/noty /usr/local/share/
+   sudo cp bin/noty /usr/local/bin/
+   ```
+4. Run Noty:
+   ```bash
+   noty
    ```
 
-### III. Using [eget](https://github.com/zyedidia/eget)
+To uninstall:
+```bash
+sudo rm -rf /usr/local/share/noty
+sudo rm /usr/local/bin/noty
+```
+
+### III. Using [eget](https://github.com/zyedidia/eget) (Not working currently)
 
 ```bash
 eget dagimg-dot/noty
