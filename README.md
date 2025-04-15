@@ -67,10 +67,9 @@ flatpak install --or-update noty.flatpak
 
 - Meson (`>= 1.0.0`)
 - Ninja
-- GTK4
-- Libadwaita
+- GTK4 and Libadwaita
 - Python 3
-- blueprint-compiler (`>= 0.16.0`)
+- Blueprint Compiler (`>= 0.16.0`)
 
 **(Note:** Dependencies might vary slightly based on your distribution. You'll typically need the development packages, e.g., `libadwaita-devel` or `libadwaita-dev`.)\*
 
