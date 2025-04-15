@@ -26,12 +26,33 @@
 
 ## Installation
 
-### Flatpak (Recommended)
+### I. Flatpak (Recommended)
 
 Flatpak bundles are available from the [GitHub Releases page](https://github.com/dagimg/noty/releases). Download the latest `.flatpak` file and install it using your graphical software center or via the command line:
 
 ```bash
-flatpak install noty.flatpak
+flatpak install noty-x.x.x.flatpak
+```
+
+### II. Tar Archive
+
+You can also install Noty from the tar archive available on the [GitHub Releases page](https://github.com/dagimg/noty/releases):
+
+1. Download the latest `noty-x.x.x-linux-x86_64.tar.xz` file
+2. Extract the archive:
+   ```bash
+   tar -xf noty-x.x.x-linux-x86_64.tar.xz
+   cd noty-x.x.x-linux-x86_64
+   ```
+3. Run:
+   ```bash
+   ./noty
+   ```
+
+### III. Using [eget](https://github.com/zyedidia/eget)
+
+```bash
+eget dagimg-dot/noty
 ```
 
 ### Updating
@@ -48,10 +69,8 @@ flatpak install --or-update noty.flatpak
 - Ninja
 - GTK4
 - Libadwaita
-- Python 3 # dependency of ./noty
+- Python 3
 - blueprint-compiler (`>= 0.16.0`)
-- glib-compile-schemas
-- desktop-file-utils
 
 **(Note:** Dependencies might vary slightly based on your distribution. You'll typically need the development packages, e.g., `libadwaita-devel` or `libadwaita-dev`.)\*
 
@@ -83,8 +102,9 @@ flatpak install --or-update noty.flatpak
 
 ## TODO
 
-- [x] Rename note
+- [x] Note renaming
 - [x] Note deletion
+- [x] Window size persistence
 - [ ] Full markdown support
 - [ ] Custom color scheme picker
 - [ ] Custom font picker
