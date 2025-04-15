@@ -22,6 +22,7 @@ class NoteListItem(Gtk.Box):
 
         if hasattr(note_object, "get_name"):
             note_name = note_object.get_name()
+            note_object.connect("notify::name", self._on_note_name_changed)
         else:
             note_name = str(note_object)
 
@@ -31,6 +32,10 @@ class NoteListItem(Gtk.Box):
                 self.append(self.note_name_label)
         else:
             logger.error("Could not find note_name_label!")
+
+    def _on_note_name_changed(self, note_object, pspec):
+        if self.note_name_label:
+            self.note_name_label.set_text(note_object.get_name())
 
     def unbind(self, note_object):
         self.note_object = None
