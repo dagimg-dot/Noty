@@ -3,11 +3,18 @@ from os import listdir, path, remove, rename
 from datetime import datetime
 from .conf_manager import ConfManager
 from ..models.note import Note
-from ..utils import logger
+from ..utils import logger, singleton
 import time
 
 
-class FileManager(GObject.Object):
+class FileManagerSignaler(GObject.Object):
+    __gsignals__ = {
+        "note_changed": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
+        "note_reloaded": (GObject.SignalFlags.RUN_FIRST, None, ()),
+    }
+
+
+class FileManager(metaclass=singleton.Singleton):
     __gsignals__ = {
         "note_changed": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
         "note_reloaded": (GObject.SignalFlags.RUN_FIRST, None, ()),
@@ -16,6 +23,9 @@ class FileManager(GObject.Object):
     def __init__(self):
         super().__init__()
         self.confman = ConfManager()
+        self.signaler = FileManagerSignaler()
+        self.emit = self.signaler.emit
+        self.connect = self.signaler.connect
 
         self.currently_open_path = None
         self.last_save_time = None

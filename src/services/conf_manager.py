@@ -5,7 +5,7 @@ from os import environ as Env, system, makedirs
 import json
 from gi.repository import GObject, GLib  # type: ignore
 from .. import APPLICATION_ID
-from ..utils import logger
+from ..utils import logger, singleton
 
 documents_dir = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOCUMENTS)
 if not documents_dir:
@@ -33,16 +33,7 @@ class ConfManagerSignaler(GObject.Object):
     }
 
 
-class Singleton(type):
-    instance = None
-
-    def __call__(cls, *args, **kwargs):
-        if not cls.instance:
-            cls.instance = super(Singleton, cls).__call__(*args, **kwargs)
-        return cls.instance
-
-
-class ConfManager(metaclass=Singleton):
+class ConfManager(metaclass=singleton.Singleton):
     BASE_SCHEMA = {
         "windowsize": {"width": 350, "height": 650},
         "notes_dir": "{0}/{1}".format(documents_dir, _("Noties")),
