@@ -10,7 +10,11 @@ class RenamePopover(Gtk.Popover):
     __gtype_name__ = "RenamePopover"
 
     __gsignals__ = {
-        "rename-success": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
+        "rename-success": (
+            GObject.SignalFlags.RUN_FIRST,
+            None,
+            (str,),
+        ),
     }
 
     rename_entry = Gtk.Template.Child()

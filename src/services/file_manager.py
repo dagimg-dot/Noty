@@ -10,7 +10,7 @@ import time
 class FileManager(GObject.Object):
     __gsignals__ = {
         "note_changed": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
-        "note_reloaded": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
+        "note_reloaded": (GObject.SignalFlags.RUN_FIRST, None, ()),
     }
 
     def __init__(self):
@@ -25,12 +25,25 @@ class FileManager(GObject.Object):
         # Add debounce for note_changed signals
         self._last_note_changed_time = 0
         self._last_note_changed_path = None
+        self._is_initializing = True
 
-        self.confman.connect("notes_dir_changed", self._handle_notes_dir_change)
-        self.confman.connect("markdown_syntax_highlighting_changed", self.reload_notes)
-        self.confman.connect("recurse_subfolders_changed", self.reload_notes)
+        # Connect signals after initialization
+        GObject.idle_add(self._connect_signals)
 
+        # Initial load
         self.reload_notes()
+        self._is_initializing = False
+
+    def _connect_signals(self):
+        self.confman.connect("notes_dir_changed", self._handle_notes_dir_change)
+        self.confman.connect(
+            "markdown_syntax_highlighting_changed", self._on_settings_changed
+        )
+        return False  # Don't repeat the idle callback
+
+    def _on_settings_changed(self, *args):
+        if not self._is_initializing:
+            self.reload_notes()
 
     def get_notes_model(self):
         return self.notes_model
@@ -63,7 +76,7 @@ class FileManager(GObject.Object):
         if note_path and path.isfile(note_path):
             if not overwrite_external and self.last_save_time:
                 # Check for external modifications first
-                if self._detect_external_modification(note_path):
+                if self.check_external_changes(note_path):
                     return False
 
             try:
@@ -160,12 +173,19 @@ class FileManager(GObject.Object):
 
     def reload_notes(self, *args):
         logger.debug(f"Reloading notes... args: {args}")
-        logger.debug(f"Before reload - Current notes_dir: {self.notes_dir}")
-        logger.debug(f"Config notes_dir: {self.confman.conf['notes_dir']}")
-        
+
+        # If we're initializing, just load the notes
+        if self._is_initializing:
+            self._load_notes()
+            return True
+
+        # Otherwise, do a full reload
         self.notes_model.remove_all()
+        return self._load_notes()
+
+    def _load_notes(self):
+        """Internal method to load notes without clearing the model"""
         self.notes_dir = self.confman.conf["notes_dir"]
-        
         logger.info(f"Notes directory set to: {self.notes_dir}")
 
         try:
@@ -182,19 +202,13 @@ class FileManager(GObject.Object):
             for f_path in file_paths:
                 # Check if the file is either extensionless or has .md extension
                 is_valid_file = (
-                    path.isfile(f_path) and 
-                    not path.basename(f_path).startswith(".") and
-                    (
-                        "." not in path.basename(f_path) or
-                        f_path.lower().endswith(".md")
+                    path.isfile(f_path)
+                    and not path.basename(f_path).startswith(".")
+                    and (
+                        "." not in path.basename(f_path)
+                        or f_path.lower().endswith(".md")
                     )
                 )
-
-                # More detailed debugging
-                logger.debug(f"Checking file: {f_path}")
-                logger.debug(f"  Is file: {path.isfile(f_path)}")
-                logger.debug(f"  Is valid file: {is_valid_file}")
-                logger.debug(f"  Hidden: {path.basename(f_path).startswith('.')}")
 
                 if is_valid_file:
                     try:
@@ -212,7 +226,6 @@ class FileManager(GObject.Object):
         except Exception as e:
             logger.error(f"Error scanning notes directory {self.notes_dir}: {e}")
 
-        # self.emit("notes_reloaded")
         return count > 0
 
     def check_external_changes(self, note_path):
@@ -285,7 +298,9 @@ class FileManager(GObject.Object):
                             overwrite_external=False,
                         )
                 except Exception as e:
-                    logger.error(f"Error saving current file before directory change: {e}")
+                    logger.error(
+                        f"Error saving current file before directory change: {e}"
+                    )
 
             self.currently_open_path = None
             self.last_save_time = None

@@ -9,6 +9,7 @@ from ..services.file_manager import FileManager  # noqa: E402
 from ..services.conf_manager import ConfManager  # noqa: E402
 from ..models.note import Note  # noqa: E402
 from ..widgets.note_list_item import NoteListItem  # noqa: E402
+from ..widgets.rename_popover import RenamePopover  # noqa: E402
 from ..utils.constants import COLOR_SCHEMES  # noqa: E402
 from ..utils import logger  # noqa: E402
 
@@ -30,8 +31,16 @@ class NotyWindow(Adw.ApplicationWindow):
         self.confman = ConfManager()
         self.file_manager = FileManager()
 
+        # Create shared RenamePopover
+        self.rename_popover = RenamePopover()
+        self.rename_popover.set_parent(self)
+        self._rename_note_object = None
+
         # Flag to track selection method (keyboard vs mouse)
         self._selection_from_keyboard = False
+
+        self._current_query = ""
+        self._note_filter = Gtk.CustomFilter.new(self._filter_notes, None)
 
         logger.info("Setting up list view...")
         self._setup_list_view()
@@ -57,7 +66,7 @@ class NotyWindow(Adw.ApplicationWindow):
     def _setup_list_view(self):
         model = self.file_manager.get_notes_model()
 
-        self.filter_model = Gtk.FilterListModel.new(model, None)
+        self.filter_model = Gtk.FilterListModel.new(model, self._note_filter)
 
         # Create a sorter function using CustomSorter
         self.sorter = Gtk.CustomSorter.new(self._sort_notes_func, None)
@@ -76,10 +85,16 @@ class NotyWindow(Adw.ApplicationWindow):
 
         self.notes_list_view.connect("activate", self._on_note_activated)
 
-        # Add click controller to detect mouse selection
+        # Add click controllers
         click_controller = Gtk.GestureClick.new()
         click_controller.connect("pressed", self._on_listview_click)
         self.notes_list_view.add_controller(click_controller)
+
+        # Add right-click controller for context menu
+        right_click_controller = Gtk.GestureClick.new()
+        right_click_controller.set_button(Gdk.BUTTON_SECONDARY)
+        right_click_controller.connect("pressed", self._on_list_right_click)
+        self.notes_list_view.add_controller(right_click_controller)
 
         # Add actions for context menu
         self._setup_list_actions()
@@ -105,13 +120,19 @@ class NotyWindow(Adw.ApplicationWindow):
         self.text_editor.connect("notify::has-focus", self._on_editor_focus_changed)
 
     def _connect_signals(self):
+        # Search Entry
         self.search_entry.connect("search-changed", self._on_search_changed)
         self.search_entry.connect("activate", self._on_search_activate)
         self.search_entry.connect("notify::has-focus", self._on_search_focus_changed)
 
+        # Text Editor
         self.text_editor.connect("notify::has-focus", self._on_editor_focus_changed)
-        self.file_manager.connect("note_changed", self._on_external_note_change)
 
+        # File Manager
+        self.file_manager.connect("note_changed", self._on_external_note_change)
+        self.file_manager.connect("note_reloaded", self._on_notes_reloaded)
+
+        # Conf Manager
         self.confman.connect("theme_changed", self._apply_editor_settings)
         self.confman.connect("editor_color_scheme_changed", self._apply_editor_settings)
         self.confman.connect("font_size_changed", self._apply_editor_settings)
@@ -119,6 +140,9 @@ class NotyWindow(Adw.ApplicationWindow):
             "markdown_syntax_highlighting_changed", self._apply_editor_settings
         )
         self.confman.connect("sorting_method_changed", self._on_sorting_method_changed)
+
+        # Rename Popover
+        self.rename_popover.connect("rename-success", self._on_rename_success)
 
     def get_content(self):
         return self.source_buffer.get_text(
@@ -147,7 +171,6 @@ class NotyWindow(Adw.ApplicationWindow):
         self.search_entry.select_region(0, -1)
 
     def _on_listview_click(self, gesture, n_press, x, y):
-        """Track that the selection was made by mouse"""
         self._selection_from_keyboard = False
 
     def _select_first_child(self):
@@ -162,6 +185,27 @@ class NotyWindow(Adw.ApplicationWindow):
         last_item = self.notes_list_view.get_last_child()
         if last_item:
             last_item.grab_focus()
+
+    def _on_list_right_click(self, gesture, n_press, x, y):
+        selected_item = self.selection_model.get_selected_item()
+        if not selected_item or not isinstance(selected_item, Note):
+            return
+
+        menu = Gio.Menu.new()
+        menu.append(_("Rename"), "item.rename")
+        menu.append(_("Delete"), "item.delete")
+
+        popover = Gtk.PopoverMenu.new_from_model(menu)
+        popover.set_parent(self)
+
+        rect = Gdk.Rectangle()
+        rect.x = x
+        rect.y = y
+        rect.width = 1
+        rect.height = 1
+        popover.set_pointing_to(rect)
+
+        popover.popup()
 
     def _on_list_key_pressed(self, controller, keyval, keycode, state):
         if keyval in (
@@ -185,7 +229,7 @@ class NotyWindow(Adw.ApplicationWindow):
                 self._show_delete_confirmation(selected_item)
                 return True
 
-        # Handle Ctrl+J/K for list navigation
+        # Handle Ctrl+J/K/R for list navigation and rename
         ctrl_pressed = state & Gdk.ModifierType.CONTROL_MASK
 
         if ctrl_pressed and (
@@ -216,7 +260,7 @@ class NotyWindow(Adw.ApplicationWindow):
                 selected_item = self.selection_model.get_selected_item()
                 if selected_item and isinstance(selected_item, Note):
                     note_list_item = self.get_list_item()
-                    note_list_item._show_rename_popover()
+                    self._show_rename_popover(selected_item, note_list_item)
                 return True
 
         if keyval == Gdk.KEY_Escape:
@@ -237,7 +281,8 @@ class NotyWindow(Adw.ApplicationWindow):
             selected_item = self.selection_model.get_selected_item()
             if selected_item and isinstance(selected_item, Note):
                 note_list_item = self.get_list_item()
-                note_list_item._show_rename_popover()
+                self._show_rename_popover(selected_item, note_list_item)
+                return True
 
         return False
 
@@ -277,10 +322,6 @@ class NotyWindow(Adw.ApplicationWindow):
     def _on_factory_setup(self, factory, list_item):
         note_list_item = NoteListItem()
         list_item.set_child(note_list_item)
-
-        note_list_item.rename_popover.connect("rename-success", self._on_rename_success)
-        note_list_item.connect("delete-requested", self._on_note_delete_requested)
-
         logger.debug("Factory Setup (Widget created)")  # Debug
 
     def _on_rename_success(self, popover, new_name):
@@ -355,24 +396,18 @@ class NotyWindow(Adw.ApplicationWindow):
         self.search_entry.set_text(note_object.get_name())
 
     def _on_search_changed(self, search_entry):
-        query = search_entry.get_text().strip()
+        query = search_entry.get_text().strip().lower()
         logger.debug(f"Search Query: {query}")  # Debug
         if not hasattr(self, "filter_model"):
             return
 
-        if not query:
-            if self.filter_model.get_filter():
-                self.filter_model.set_filter(None)
-        else:
-            self._selection_from_keyboard = True
+        self._current_query = query
+        self._note_filter.changed(Gtk.FilterChange.DIFFERENT)
 
-            note_filter = Gtk.CustomFilter.new(self._filter_notes, query)
-            self.filter_model.set_filter(note_filter)
-
-    def _filter_notes(self, note_object, filter_data):
-        if isinstance(note_object, Note) and isinstance(filter_data, str):
-            return filter_data in note_object.get_name().lower()
-        return False
+    def _filter_notes(self, note_object, _):
+        if isinstance(note_object, Note) and self._current_query:
+            return self._current_query in note_object.get_name().lower()
+        return True
 
     def _on_search_activate(self, search_entry):
         name_to_open_or_create = search_entry.get_text().strip()
@@ -579,7 +614,7 @@ class NotyWindow(Adw.ApplicationWindow):
         selected_item = self.selection_model.get_selected_item()
         if selected_item and isinstance(selected_item, Note):
             note_list_item = self.get_list_item()
-            note_list_item._show_rename_popover()
+            self._show_rename_popover(selected_item, note_list_item)
 
     def _on_delete_action(self, action, param):
         selected_item = self.selection_model.get_selected_item()
@@ -622,3 +657,11 @@ class NotyWindow(Adw.ApplicationWindow):
                     self._search_entry_focus()
 
         dialog.destroy()
+
+    def _show_rename_popover(self, note_object, widget):
+        """Show the shared rename popover for a note"""
+        self._rename_note_object = note_object
+        self.rename_popover.set_note(note_object)
+        rect = widget.get_allocation()
+        self.rename_popover.set_pointing_to(rect)
+        self.rename_popover.popup()
