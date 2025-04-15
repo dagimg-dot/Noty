@@ -48,10 +48,12 @@ class RenamePopover(Gtk.Popover):
 
     def _on_rename_canceled(self, button):
         self.popdown()
+        self.unparent()
 
     def _on_rename_done(self, widget):
         if not self.current_note:
             self.popdown()
+            self.unparent()
             return
 
         new_name = self.rename_entry.get_text().strip()
@@ -80,6 +82,7 @@ class RenamePopover(Gtk.Popover):
             self.current_note.update_after_rename(new_file_path)
             self.emit("rename-success", new_name)
             self.popdown()
+            self.unparent()
         else:
             self.rename_error_label.set_text("Failed to rename note")
             self.rename_error_revealer.set_reveal_child(True)

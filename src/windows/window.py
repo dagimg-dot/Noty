@@ -33,7 +33,6 @@ class NotyWindow(Adw.ApplicationWindow):
 
         # Create shared RenamePopover
         self.rename_popover = RenamePopover()
-        self.rename_popover.set_parent(self)
         self._rename_note_object = None
 
         # Flag to track selection method (keyboard vs mouse)
@@ -662,6 +661,12 @@ class NotyWindow(Adw.ApplicationWindow):
         """Show the shared rename popover for a note"""
         self._rename_note_object = note_object
         self.rename_popover.set_note(note_object)
+
+        current_parent = self.rename_popover.get_parent()
+        if current_parent:
+            self.rename_popover.unparent()
+
+        self.rename_popover.set_parent(widget)
         rect = widget.get_allocation()
         self.rename_popover.set_pointing_to(rect)
         self.rename_popover.popup()
