@@ -33,6 +33,16 @@ COLOR_SCHEMES = {
         "background": "#2e3440",
         "selection": "rgba(120, 120, 120, 0.4)",
     },
+    "gruvbox": {
+        "text": "#ebdbb2",
+        "background": "#282828",
+        "selection": "rgba(120, 120, 120, 0.4)",
+    },
+    "tokyo_night": {
+        "text": "#d7d7d7",
+        "background": "#1a1b26",
+        "selection": "rgba(120, 120, 120, 0.4)",
+    },
 }
 
 
