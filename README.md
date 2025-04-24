@@ -23,6 +23,8 @@
 - **Keyboard Driven:** Designed primarily for mouse-free operation.
 - **Flatpak:** Easy installation and updates.
 - **External change detection:** Automatically reload notes when changed outside the app.
+- **Custom font and color scheme:** Choose your preferred font and color scheme.
+
 
 ## Installation
 
@@ -32,38 +34,6 @@ Flatpak bundles are available from the [GitHub Releases page](https://github.com
 
 ```bash
 flatpak install noty-x.x.x.flatpak
-```
-
-### II. Binary Release (Not working currently)
-
-You can download and run the pre-built binary from the [GitHub Releases page](https://github.com/dagimg/noty/releases):
-
-1. Download the latest `noty-x.x.x-linux-x86_64.tar.gz` file
-2. Extract the archive:
-   ```bash
-   tar -xf noty-x.x.x-linux-x86_64.tar.gz
-   cd noty-x.x.x
-   ```
-3. Install the files:
-   ```bash
-   sudo cp -r share/noty /usr/local/share/
-   sudo cp bin/noty /usr/local/bin/
-   ```
-4. Run Noty:
-   ```bash
-   noty
-   ```
-
-To uninstall:
-```bash
-sudo rm -rf /usr/local/share/noty
-sudo rm /usr/local/bin/noty
-```
-
-### III. Using [eget](https://github.com/zyedidia/eget) (Not working currently)
-
-```bash
-eget dagimg-dot/noty
 ```
 
 ### Updating
@@ -118,9 +88,9 @@ flatpak install --or-update noty.flatpak
 - [x] Note renaming
 - [x] Note deletion
 - [x] Window size persistence
-- [ ] Full markdown support
+- [x] Custom font picker
 - [ ] Custom color scheme picker
-- [ ] Custom font picker
+- [ ] Full markdown support
 
 ## License
 
