@@ -5,7 +5,7 @@ from gettext import gettext as _
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Gtk, Adw, Gio  # noqa: E402 # type: ignore
+from gi.repository import Gtk, Adw, Gio, Pango  # noqa: E402 # type: ignore
 from ..services.conf_manager import ConfManager  # noqa: E402
 from ..utils.constants import SORTING_METHODS, COLOR_SCHEMES, THEME  # noqa: E402
 
@@ -32,6 +32,8 @@ class PreferencesDialog(Adw.PreferencesDialog):
     dropdown_color_scheme: Gtk.DropDown = Gtk.Template.Child()
     color_scheme_model: Gtk.StringList = Gtk.Template.Child()
     switch_markdown_syntax: Gtk.Switch = Gtk.Template.Child()
+    switch_custom_font: Gtk.Switch = Gtk.Template.Child()
+    font_dialog_btn: Gtk.FontDialogButton = Gtk.Template.Child()
     spin_button_font_size: Gtk.SpinButton = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
@@ -76,6 +78,8 @@ class PreferencesDialog(Adw.PreferencesDialog):
         self.switch_markdown_syntax.connect(
             "notify::active", self.on_markdown_syntax_changed
         )
+        self.switch_custom_font.connect("notify::active", self.on_custom_font_changed)
+        self.font_dialog_btn.connect("notify::font-desc", self.on_font_desc_changed)
         self.spin_button_font_size.connect("value-changed", self.on_font_size_changed)
 
         self.load_settings()
@@ -119,7 +123,6 @@ class PreferencesDialog(Adw.PreferencesDialog):
 
         current_scheme = self.confman.conf["editor_color_scheme"]
         if current_scheme in COLOR_SCHEMES:
-            # Use the index from the keys list since we don't have a mapping dict for this
             self.dropdown_color_scheme.set_selected(
                 list(COLOR_SCHEMES.keys()).index(current_scheme)
             )
@@ -127,6 +130,17 @@ class PreferencesDialog(Adw.PreferencesDialog):
         self.switch_markdown_syntax.set_active(
             self.confman.conf["show_markdown_syntax_highlighting"]
         )
+
+        self.switch_custom_font.set_active(
+            self.confman.conf.get("use_custom_font", False)
+        )
+
+        if "custom_font" in self.confman.conf:
+            font_desc = Pango.FontDescription.from_string(
+                self.confman.conf["custom_font"]
+            )
+            self.font_dialog_btn.set_font_desc(font_desc)
+
         self.spin_button_font_size.set_value(self.confman.conf["font_size"])
 
     def on_notes_dir_clicked(self, button):
@@ -230,6 +244,20 @@ class PreferencesDialog(Adw.PreferencesDialog):
         self.confman.emit(
             "markdown_syntax_highlighting_changed", "enabled" if active else "disabled"
         )
+
+    def on_custom_font_changed(self, switch, param):
+        active = switch.get_active()
+        self.confman.conf["use_custom_font"] = active
+        self.confman.save_conf()
+        self.confman.emit("custom_font_changed", "enabled" if active else "disabled")
+
+    def on_font_desc_changed(self, font_button, param):
+        font_desc = font_button.get_font_desc()
+        if font_desc:
+            font_string = font_desc.to_string()
+            self.confman.conf["custom_font"] = font_string
+            self.confman.save_conf()
+            self.confman.emit("custom_font_changed", font_string)
 
     def on_font_size_changed(self, spin_button):
         value = int(spin_button.get_value())

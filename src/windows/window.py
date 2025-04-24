@@ -144,6 +144,7 @@ class NotyWindow(Adw.ApplicationWindow):
         self.confman.connect(
             "markdown_syntax_highlighting_changed", self._apply_editor_settings
         )
+        self.confman.connect("custom_font_changed", self._apply_editor_settings)
         self.confman.connect("sorting_method_changed", self._on_sorting_method_changed)
         self.confman.connect(
             "persist_window_size_changed", self._on_persist_window_size_changed
@@ -559,6 +560,8 @@ class NotyWindow(Adw.ApplicationWindow):
 
         font_size = self.confman.conf.get("font_size", 12)
         color_scheme = self.confman.conf.get("editor_color_scheme", "default")
+        use_custom_font = self.confman.conf.get("use_custom_font", False)
+        custom_font = self.confman.conf.get("custom_font", "Monospace 12")
 
         style_manager = Adw.StyleManager.get_default()
         is_dark = style_manager.get_color_scheme() in [
@@ -579,17 +582,34 @@ class NotyWindow(Adw.ApplicationWindow):
                 "selection": "rgba(120, 120, 120, 0.4)",
             }
 
-        css_provider = Gtk.CssProvider()
-        css = f"""
-        textview {{
-            font-size: {font_size}pt;
-            color: {scheme_colors["text"]};
-            background-color: {scheme_colors["background"]};
-        }}
+        # Prepare CSS for the TextView
+        css = ""
+
+        if use_custom_font:
+            css += f"""
+            textview {{
+                font-family: {custom_font.split(" ")[0]};
+                font-size: {font_size}pt;
+                color: {scheme_colors["text"]};
+                background-color: {scheme_colors["background"]};
+            }}
+            """
+        else:
+            css += f"""
+            textview {{
+                font-size: {font_size}pt;
+                color: {scheme_colors["text"]};
+                background-color: {scheme_colors["background"]};
+            }}
+            """
+
+        css += f"""
         textview text selection {{
             background-color: {scheme_colors["selection"]};
         }}
         """
+
+        css_provider = Gtk.CssProvider()
         css_provider.load_from_data(css.encode())
         self.text_editor.get_style_context().add_provider(
             css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION

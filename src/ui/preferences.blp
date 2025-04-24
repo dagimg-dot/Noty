@@ -158,6 +158,27 @@ template $PreferencesDialog: Adw.PreferencesDialog {
             }
 
             Adw.ActionRow {
+                title: _("Custom Font");
+                subtitle: _("Use a custom font for the editor");
+                activatable-widget: switch_custom_font;
+
+                Switch switch_custom_font {
+                    valign: center;
+                }
+            }
+
+            Adw.ActionRow {
+                title: _("Font");
+                subtitle: _("Select a custom font for the editor");
+                sensitive: bind switch_custom_font.active;
+
+                FontDialogButton font_dialog_btn {
+                    valign: center;
+                    dialog: FontDialog {};
+                }
+            }
+
+            Adw.ActionRow {
                 title: _("Font Size");
                 subtitle: _("Text size in the editor");
 

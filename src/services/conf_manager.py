@@ -31,6 +31,7 @@ class ConfManagerSignaler(GObject.Object):
         "font_size_changed": (GObject.SignalFlags.RUN_FIRST, None, (int,)),
         "recurse_subfolders_changed": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
         "persist_window_size_changed": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
+        "custom_font_changed": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
     }
 
 
@@ -47,6 +48,8 @@ class ConfManager(metaclass=singleton.Singleton):
         "editor_color_scheme": "default",
         "recurse_subfolders": False,
         "font_size": 12,
+        "use_custom_font": False,
+        "custom_font": "Monospace 12",
     }
 
     def __init__(self):
