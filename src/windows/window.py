@@ -213,7 +213,7 @@ class NotyWindow(Adw.ApplicationWindow):
         menu.append(_("Delete"), "item.delete")
 
         popover = Gtk.PopoverMenu.new_from_model(menu)
-        popover.set_parent(self)
+        popover.set_parent(self.notes_list_view)
 
         rect = Gdk.Rectangle()
         rect.x = x
