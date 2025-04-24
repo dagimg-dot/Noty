@@ -92,5 +92,34 @@ template $HelpOverlay: ShortcutsWindow {
         title: _("Delete selected note");
       }
     }
+
+    ShortcutsGroup {
+      visible: true;
+      title: _("Editor");
+
+      ShortcutsShortcut {
+        visible: true;
+        accelerator: "Escape";
+        title: _("Move to the search bar");
+      }
+
+      ShortcutsShortcut {
+        visible: true;
+        accelerator: "<Control>plus <Control>equal";
+        title: _("Increase font size");
+      }
+
+      ShortcutsShortcut {
+        visible: true;
+        accelerator: "<Control>minus";
+        title: _("Decrease font size");
+      }
+
+      ShortcutsShortcut {
+        visible: true;
+        accelerator: "<Control>0";
+        title: _("Reset font size to default");
+      }
+    }
   }
 }

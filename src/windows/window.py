@@ -332,6 +332,32 @@ class NotyWindow(Adw.ApplicationWindow):
         if keyval == Gdk.KEY_Escape:
             self._search_entry_focus()
             return True
+
+        ctrl_pressed = state & Gdk.ModifierType.CONTROL_MASK
+        if ctrl_pressed:
+            if keyval == Gdk.KEY_plus or keyval == Gdk.KEY_equal:
+                current_size = self.confman.conf.get("font_size", 12)
+                if current_size < 32:
+                    self.confman.conf["font_size"] = current_size + 1
+                    self.confman.save_conf()
+                    self.confman.emit("font_size_changed", current_size + 1)
+                return True
+
+            elif keyval == Gdk.KEY_minus:
+                current_size = self.confman.conf.get("font_size", 12)
+                if current_size > 8:
+                    self.confman.conf["font_size"] = current_size - 1
+                    self.confman.save_conf()
+                    self.confman.emit("font_size_changed", current_size - 1)
+                return True
+
+            elif keyval == Gdk.KEY_0:
+                default_size = 12
+                self.confman.conf["font_size"] = default_size
+                self.confman.save_conf()
+                self.confman.emit("font_size_changed", default_size)
+                return True
+
         return False
 
     # --- ListView Factory Callbacks ---
