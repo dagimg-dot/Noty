@@ -3,7 +3,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, Gtk, Gdk, Gio  # type: ignore # noqa: E402
+from gi.repository import Adw, Gtk, Gdk, Gio, Pango  # type: ignore # noqa: E402
 from gettext import gettext as _  # noqa: E402
 from ..services.file_manager import FileManager  # noqa: E402
 from ..services.conf_manager import ConfManager  # noqa: E402
@@ -612,9 +612,11 @@ class NotyWindow(Adw.ApplicationWindow):
         css = ""
 
         if use_custom_font:
+            font_desc = Pango.FontDescription.from_string(custom_font)
+            family = font_desc.get_family()
             css += f"""
             textview {{
-                font-family: {custom_font.split(" ")[0]};
+                font-family: '{family}';
                 font-size: {font_size}pt;
                 color: {scheme_colors["text"]};
                 background-color: {scheme_colors["background"]};
