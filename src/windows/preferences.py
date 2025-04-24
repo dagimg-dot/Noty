@@ -39,6 +39,15 @@ class PreferencesDialog(Adw.PreferencesDialog):
         self.confman = ConfManager()
         self.style_manager = Adw.StyleManager.get_default()
 
+        # Connect to system color scheme changes
+        self.style_manager.connect(
+            "notify::system-supports-color-schemes",
+            self._on_system_theme_support_changed,
+        )
+        self.style_manager.connect(
+            "notify::color-scheme", self._on_system_theme_changed
+        )
+
         # Populate dropdown models from constants
         self._populate_dropdown_models()
 
@@ -183,26 +192,28 @@ class PreferencesDialog(Adw.PreferencesDialog):
     def on_theme_changed(self, dropdown, param):
         selected = dropdown.get_selected()
         themes = list(THEME.keys())
+
         if 0 <= selected < len(themes):
-            self.confman.conf["theme"] = themes[selected]
+            selected_theme = themes[selected]
+            self.confman.conf["theme"] = selected_theme
             self.confman.save_conf()
 
-            # current system theme
-            is_dark = self.style_manager.get_color_scheme() in [
-                Adw.ColorScheme.PREFER_DARK,
-                Adw.ColorScheme.FORCE_DARK,
-            ]
-
-            # Apply the theme immediately
             theme_dict = {
                 "light": Adw.ColorScheme.FORCE_LIGHT,
                 "dark": Adw.ColorScheme.FORCE_DARK,
-                "system": Adw.ColorScheme.PREFER_DARK
-                if is_dark
-                else Adw.ColorScheme.PREFER_LIGHT,
+                "system": Adw.ColorScheme.DEFAULT,
             }
-            self.style_manager.set_color_scheme(theme_dict[themes[selected]])
-            self.confman.emit("theme_changed", themes[selected])
+
+            self.style_manager.set_color_scheme(theme_dict[selected_theme])
+            self.confman.emit("theme_changed", selected_theme)
+
+    def _on_system_theme_changed(self, style_manager, pspec):
+        if self.confman.conf["theme"] == "system":
+            self.confman.emit("theme_changed", "system")
+
+    def _on_system_theme_support_changed(self, style_manager, pspec):
+        if self.confman.conf["theme"] == "system":
+            self.confman.emit("theme_changed", "system")
 
     def on_color_scheme_changed(self, dropdown, param):
         selected = dropdown.get_selected()
