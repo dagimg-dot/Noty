@@ -378,8 +378,12 @@ class NotyWindow(Adw.ApplicationWindow):
 
         activate_on_select = self.confman.conf.get("activate_row_on_select", False)
 
-        # Only apply activate_on_select for mouse selection, not keyboard navigation
-        if activate_on_select and not self._selection_from_keyboard:
+        # Only apply activate_on_select for mouse selection, not keyboard navigation and not on active search
+        if (
+            activate_on_select
+            and not self._selection_from_keyboard
+            and not self.search_entry.get_text().strip()
+        ):
             self._load_note_into_editor(selected_item)
             self.text_editor.grab_focus()
 
