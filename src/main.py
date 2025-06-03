@@ -21,6 +21,7 @@ import sys
 import gi
 import argparse
 import logging
+import os
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -57,6 +58,26 @@ class NotyApplication(Adw.Application):
         )
         self.create_action("about", self.on_about_action)
 
+    def _try_open_last_file(self):
+        """Attempts to open the last opened file based on configuration."""
+        last_file_path = self.confman.conf.get("last_opened_file")
+        if last_file_path and os.path.isfile(last_file_path):
+            logger.info(f"Attempting to open last file: {last_file_path}")
+            note_object = self.win.file_manager._find_note_by_path(last_file_path)
+            if note_object:
+                self.win._load_note_into_editor(note_object)
+                self.win.text_editor.set_sensitive(True)
+            else:
+                logger.warning(
+                    f"Last opened file {last_file_path} not found by file_manager._find_note_by_path."
+                )
+        elif last_file_path:
+            logger.info(
+                f"Last opened file path found ({last_file_path}), but file does not exist. Clearing from config."
+            )
+            self.confman.conf["last_opened_file"] = None
+            self.confman.save_conf()
+
     def do_activate(self):
         """Called when the application is activated.
 
@@ -67,6 +88,7 @@ class NotyApplication(Adw.Application):
             self.win = NotyWindow(application=self)
 
         self.win.present()
+        self._try_open_last_file()
 
     def on_about_action(self, *args):
         """Callback for the app.about action."""
@@ -93,32 +115,62 @@ class NotyApplication(Adw.Application):
         help_overlay = HelpOverlay()
         help_overlay.present()
 
-    def _quit_action(self, *args):
-        if self.win and self.win.file_manager.currently_open_path:
-            try:
-                buffer = self.win.source_buffer
-                current_content = buffer.get_text(
-                    buffer.get_start_iter(),
-                    buffer.get_end_iter(),
-                    True,
-                )
-                logger.info(
-                    f"Saving file before quit: {self.win.file_manager.currently_open_path}"
-                )
-                self.win.file_manager.save_note_content(
-                    self.win.file_manager.currently_open_path, current_content
-                )
+    def _save_state_on_quit(self):
+        """Saves application state like open file and window size before quitting."""
+        config_changed = False
+        if self.win:
+            if self.win.file_manager.currently_open_path:
+                try:
+                    # Save current buffer content
+                    buffer = self.win.source_buffer
+                    current_content = buffer.get_text(
+                        buffer.get_start_iter(), buffer.get_end_iter(), True
+                    )
+                    logger.info(
+                        f"Saving file before quit: {self.win.file_manager.currently_open_path}"
+                    )
+                    self.win.file_manager.save_note_content(
+                        self.win.file_manager.currently_open_path, current_content
+                    )
 
-                # Save window size if persistence is enabled
-                if self.confman.conf["persist_window_size"]:
+                    # Save last opened file path
+                    self.confman.conf["last_opened_file"] = (
+                        self.win.file_manager.currently_open_path
+                    )
+                    config_changed = True
+                    logger.info(
+                        f"Saving last opened file: {self.confman.conf['last_opened_file']}"
+                    )
+
+                except Exception as e:
+                    logger.error(f"Error saving file content before quit: {e}")
+            else:
+                if self.confman.conf.get("last_opened_file") is not None:
+                    self.confman.conf["last_opened_file"] = None
+                    config_changed = True
+                    logger.info(
+                        "Clearing last opened file as no file was open on quit."
+                    )
+
+            if self.confman.conf["persist_window_size"]:
+                try:
                     width, height = self.win.get_default_size()
                     self.confman.conf["windowsize"]["width"] = width
                     self.confman.conf["windowsize"]["height"] = height
-                    self.confman.save_conf()
+                    config_changed = True
                     logger.info(f"Saving window size: {width}x{height}")
+                except Exception as e:
+                    logger.error(f"Error saving window size before quit: {e}")
 
+        if config_changed:
+            try:
+                self.confman.save_conf()
             except Exception as e:
-                logger.error(f"Error saving file before quit: {e}")
+                logger.error(f"Error saving configuration on quit: {e}")
+
+    def _quit_action(self, *args):
+        if self.win:
+            self._save_state_on_quit()
         self.quit()
 
     def create_action(self, name, callback, shortcuts=None):

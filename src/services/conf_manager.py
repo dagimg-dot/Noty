@@ -50,6 +50,7 @@ class ConfManager(metaclass=singleton.Singleton):
         "font_size": 12,
         "use_custom_font": False,
         "custom_font": "Monospace 12",
+        "last_opened_file": None,
     }
 
     def __init__(self):
