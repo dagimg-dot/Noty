@@ -49,9 +49,9 @@ class NotyWindow(Adw.ApplicationWindow):
 
         logger.info("Setting up list view...")
         self._setup_list_view()
+        self._setup_key_controllers()
         self._setup_text_view()
         self._connect_signals()
-        self._setup_key_controllers()
 
         self.text_editor.set_sensitive(False)  # No file open initially
 
@@ -113,13 +113,26 @@ class NotyWindow(Adw.ApplicationWindow):
         search_key_controller.connect("key-pressed", self._on_search_key_pressed)
         self.search_entry.add_controller(search_key_controller)
 
-        editor_key_controller = Gtk.EventControllerKey.new()
-        editor_key_controller.connect("key-pressed", self._on_editor_key_pressed)
-        self.text_editor.add_controller(editor_key_controller)
+        # Standard editor key controller (will be disabled if Vim mode is on)
+        self._standard_editor_key_controller = Gtk.EventControllerKey.new()
+        self._standard_editor_key_controller.connect(
+            "key-pressed", self._on_editor_key_pressed
+        )
+        self.text_editor.add_controller(self._standard_editor_key_controller)
+
+        # Variables to hold Vim specific controllers
+        self._vim_im_context = None
+        self._vim_key_controller = None
 
     def _setup_text_view(self):
         self.source_buffer = GtkSource.Buffer()
         self.text_editor.set_buffer(self.source_buffer)
+
+        # Initial Vim mode setup based on config
+        if self.confman.conf.get("editor_vim_mode", False):
+            self._enable_vim_bindings()
+        else:
+            self._disable_vim_bindings()  # Ensures standard controller is active if Vim is off initially
 
         show_markdown_syntax = self.confman.conf.get(
             "show_markdown_syntax_highlighting", True
@@ -179,6 +192,7 @@ class NotyWindow(Adw.ApplicationWindow):
         self.confman.connect(
             "editor_highlight_current_line_changed", self._apply_editor_settings
         )
+        self.confman.connect("vim_mode_changed", self._on_vim_mode_setting_changed)
 
         # Rename Popover
         self.rename_popover.connect("rename-success", self._on_rename_success)
@@ -394,6 +408,54 @@ class NotyWindow(Adw.ApplicationWindow):
                 return True
 
         return False
+
+    def _enable_vim_bindings(self):
+        if not self._vim_key_controller:  # Only add if not already added
+            logger.info("Enabling Vim bindings for text editor")
+            if (
+                self._standard_editor_key_controller
+                and self._standard_editor_key_controller.get_widget()
+            ):
+                self.text_editor.remove_controller(self._standard_editor_key_controller)
+
+            self._vim_im_context = GtkSource.VimIMContext.new()
+            self._vim_im_context.set_client_widget(self.text_editor)
+
+            self._vim_key_controller = Gtk.EventControllerKey.new()
+            self._vim_key_controller.set_im_context(self._vim_im_context)
+            self._vim_key_controller.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+            self.text_editor.add_controller(self._vim_key_controller)
+        else:
+            logger.info("Vim bindings already enabled or controller exists")
+
+    def _disable_vim_bindings(self):
+        if self._vim_key_controller and self._vim_key_controller.get_widget():
+            logger.info("Disabling Vim bindings for text editor")
+            self.text_editor.remove_controller(self._vim_key_controller)
+            self._vim_key_controller = None
+            self._vim_im_context = None
+
+        if (
+            self._standard_editor_key_controller
+            and not self._standard_editor_key_controller.get_widget()
+        ):
+            self.text_editor.add_controller(self._standard_editor_key_controller)
+        elif not self._standard_editor_key_controller:
+            logger.warning("Standard editor key controller not found, re-creating.")
+            self._standard_editor_key_controller = Gtk.EventControllerKey.new()
+            self._standard_editor_key_controller.connect(
+                "key-pressed", self._on_editor_key_pressed
+            )
+            self.text_editor.add_controller(self._standard_editor_key_controller)
+
+    def _on_vim_mode_setting_changed(self, confman, is_enabled):
+        logger.info(
+            f"Vim mode setting changed: {'Enabled' if is_enabled else 'Disabled'}"
+        )
+        if is_enabled:
+            self._enable_vim_bindings()
+        else:
+            self._disable_vim_bindings()
 
     # --- ListView Factory Callbacks ---
 

@@ -8,6 +8,7 @@ gi.require_version("Adw", "1")
 from gi.repository import Gtk, Adw, Gio, Pango  # noqa: E402 # type: ignore
 from ..services.conf_manager import ConfManager  # noqa: E402
 from ..utils.constants import SORTING_METHODS, COLOR_SCHEMES, THEME  # noqa: E402
+from ..utils.logger import logger  # noqa: E402
 
 
 @Gtk.Template(resource_path="/com/dagimg/noty/ui/preferences.ui")
@@ -37,11 +38,15 @@ class PreferencesDialog(Adw.PreferencesDialog):
     switch_custom_font: Gtk.Switch = Gtk.Template.Child()
     font_dialog_btn: Gtk.FontDialogButton = Gtk.Template.Child()
     spin_button_font_size: Gtk.SpinButton = Gtk.Template.Child()
+    switch_vim_mode: Gtk.Switch = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.confman = ConfManager()
         self.style_manager = Adw.StyleManager.get_default()
+
+        # Setup toast overlay
+        self._setup_toast_overlay()
 
         # Connect to system color scheme changes
         self.style_manager.connect(
@@ -89,8 +94,18 @@ class PreferencesDialog(Adw.PreferencesDialog):
         self.switch_custom_font.connect("notify::active", self.on_custom_font_changed)
         self.font_dialog_btn.connect("notify::font-desc", self.on_font_desc_changed)
         self.spin_button_font_size.connect("value-changed", self.on_font_size_changed)
+        self.switch_vim_mode.connect("notify::active", self.on_vim_mode_changed)
 
         self.load_settings()
+
+    def _setup_toast_overlay(self):
+        inner = self.get_child()
+        if inner:
+            self.set_child(None)
+            overlay = Adw.ToastOverlay()
+            overlay.set_child(inner)
+            self.set_child(overlay)
+            self.toast_overlay = overlay
 
     def _populate_dropdown_models(self):
         for method_name in SORTING_METHODS.keys():
@@ -157,6 +172,9 @@ class PreferencesDialog(Adw.PreferencesDialog):
             self.font_dialog_btn.set_font_desc(font_desc)
 
         self.spin_button_font_size.set_value(self.confman.conf["font_size"])
+
+        # Load Vim mode setting
+        self.switch_vim_mode.set_active(self.confman.conf.get("editor_vim_mode", False))
 
     def on_notes_dir_clicked(self, button):
         dialog = Gtk.FileChooserDialog(
@@ -291,6 +309,70 @@ class PreferencesDialog(Adw.PreferencesDialog):
         self.confman.conf["font_size"] = value
         self.confman.save_conf()
         self.confman.emit("font_size_changed", value)
+
+    def on_vim_mode_changed(self, switch, param):
+        active = switch.get_active()
+        if active:
+            dialog = Adw.MessageDialog.new(
+                self.get_parent(),
+                _("Enable Vim Mode?"),
+                _(
+                    "This enables Vim keybindings in the editor. "
+                    "To ensure you know what you are doing, please type the main command to quit Vim below:"
+                ),
+            )
+            dialog.set_body_use_markup(False)
+
+            entry = Gtk.Entry()
+            entry.set_placeholder_text(_("Enter Vim exit command..."))
+            dialog.set_extra_child(entry)
+
+            dialog.add_response("cancel", _("Cancel"))
+            dialog.add_response("submit", _("Submit"))
+            dialog.set_response_appearance("submit", Adw.ResponseAppearance.SUGGESTED)
+            dialog.set_default_response("cancel")
+            dialog.set_close_response("cancel")
+
+            dialog.connect("response", self._on_vim_mode_dialog_response, switch, entry)
+            dialog.present()
+        else:
+            self.confman.conf["editor_vim_mode"] = False
+            self.confman.save_conf()
+            self.confman.emit("vim_mode_changed", False)
+
+    def _on_vim_mode_dialog_response(self, dialog, response_id, switch, entry):
+        if response_id == "submit":
+            # Common exit commands: :q :q! :wq :x ZZ ZQ
+            # Check for starts with :q as a basic check.
+            # Or specific commands like "ZZ" or "ZQ" which don't start with a colon
+            command_text = entry.get_text().strip()
+            allowed_responses = [":x", "ZZ", "ZQ"]
+            is_valid_exit_command = (
+                command_text in allowed_responses or command_text.startswith(":q")
+            )
+            if is_valid_exit_command:
+                self.confman.conf["editor_vim_mode"] = True
+                self.confman.save_conf()
+                self.confman.emit("vim_mode_changed", True)
+                dialog.destroy()
+
+                self._show_toast(_("Vim mode enabled successfully."))
+            else:
+                self._show_toast(_("Incorrect Vim exit command. Vim mode not enabled."))
+
+                switch.set_active(False)
+                dialog.destroy()
+        else:
+            switch.set_active(False)
+            dialog.destroy()
+
+    def _show_toast(self, message):
+        toast = Adw.Toast.new(message)
+        toast.set_timeout(3)
+        if hasattr(self, "toast_overlay"):
+            self.toast_overlay.add_toast(toast)
+        else:
+            logger.info(f"Toast overlay not found, message: {message}")
 
     def on_persist_window_size_changed(self, switch, param):
         active = switch.get_active()

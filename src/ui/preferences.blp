@@ -148,6 +148,16 @@ template $PreferencesDialog: Adw.PreferencesDialog {
             title: _("Editor");
 
             Adw.ActionRow {
+                title: _("Vim Mode");
+                subtitle: _("Enable Vim keybindings in the editor");
+                activatable-widget: switch_vim_mode;
+
+                Switch switch_vim_mode {
+                    valign: center;
+                }
+            }
+
+            Adw.ActionRow {
                 title: _("Markdown Syntax Highlighting");
                 subtitle: _("Highlight markdown formatting in the editor");
                 activatable-widget: switch_markdown_syntax;
@@ -194,6 +204,7 @@ template $PreferencesDialog: Adw.PreferencesDialog {
 
                 FontDialogButton font_dialog_btn {
                     valign: center;
+
                     dialog: FontDialog {};
                 }
             }

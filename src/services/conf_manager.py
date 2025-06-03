@@ -42,6 +42,7 @@ class ConfManagerSignaler(GObject.Object):
             None,
             (bool,),
         ),
+        "vim_mode_changed": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
     }
 
 
@@ -63,6 +64,7 @@ class ConfManager(metaclass=singleton.Singleton):
         "last_opened_file": None,
         "editor_show_line_numbers": True,
         "editor_highlight_current_line": True,
+        "editor_vim_mode": False,
     }
 
     def __init__(self):
