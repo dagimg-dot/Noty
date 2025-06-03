@@ -378,11 +378,21 @@ class NotyWindow(Adw.ApplicationWindow):
         return False
 
     def _on_editor_key_pressed(self, controller, keyval, keycode, state):
-        if keyval == Gdk.KEY_Escape:
-            self._search_entry_focus()
-            return True
-
+        vim_mode_enabled = self.confman.conf.get("editor_vim_mode", False)
         ctrl_pressed = state & Gdk.ModifierType.CONTROL_MASK
+
+        # Handle search focus based on Vim mode
+        if vim_mode_enabled:
+            # In Vim mode, use Ctrl+C to focus search (avoid conflict with Vim's Escape)
+            if ctrl_pressed and keyval == Gdk.KEY_c:
+                self._search_entry_focus()
+                return True
+        else:
+            # Standard mode, use Escape to focus search
+            if keyval == Gdk.KEY_Escape:
+                self._search_entry_focus()
+                return True
+
         if ctrl_pressed:
             if keyval == Gdk.KEY_plus or keyval == Gdk.KEY_equal:
                 current_size = self.confman.conf.get("font_size", 12)
@@ -410,13 +420,8 @@ class NotyWindow(Adw.ApplicationWindow):
         return False
 
     def _enable_vim_bindings(self):
-        if not self._vim_key_controller:  # Only add if not already added
+        if not self._vim_key_controller:
             logger.info("Enabling Vim bindings for text editor")
-            if (
-                self._standard_editor_key_controller
-                and self._standard_editor_key_controller.get_widget()
-            ):
-                self.text_editor.remove_controller(self._standard_editor_key_controller)
 
             self._vim_im_context = GtkSource.VimIMContext.new()
             self._vim_im_context.set_client_widget(self.text_editor)
@@ -435,27 +440,16 @@ class NotyWindow(Adw.ApplicationWindow):
             self._vim_key_controller = None
             self._vim_im_context = None
 
-        if (
-            self._standard_editor_key_controller
-            and not self._standard_editor_key_controller.get_widget()
-        ):
-            self.text_editor.add_controller(self._standard_editor_key_controller)
-        elif not self._standard_editor_key_controller:
-            logger.warning("Standard editor key controller not found, re-creating.")
-            self._standard_editor_key_controller = Gtk.EventControllerKey.new()
-            self._standard_editor_key_controller.connect(
-                "key-pressed", self._on_editor_key_pressed
-            )
-            self.text_editor.add_controller(self._standard_editor_key_controller)
-
     def _on_vim_mode_setting_changed(self, confman, is_enabled):
         logger.info(
             f"Vim mode setting changed: {'Enabled' if is_enabled else 'Disabled'}"
         )
         if is_enabled:
             self._enable_vim_bindings()
+            self.show_toast("Vim mode enabled. Use Ctrl+C to focus search.", 5)
         else:
             self._disable_vim_bindings()
+            self.show_toast("Vim mode disabled. Use Escape to focus search.", 3)
 
     # --- ListView Factory Callbacks ---
 
