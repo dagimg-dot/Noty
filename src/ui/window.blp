@@ -1,5 +1,6 @@
 using Gtk 4.0;
 using Adw 1;
+using GtkSource 5;
 
 template $NotyWindow: Adw.ApplicationWindow {
   default-width: 500;
@@ -41,7 +42,6 @@ template $NotyWindow: Adw.ApplicationWindow {
           reveal-child: false;
           transition-type: slide_down;
           transition-duration: 200;
-          
 
           Box {
             orientation: vertical;
@@ -74,7 +74,7 @@ template $NotyWindow: Adw.ApplicationWindow {
             vexpand: true;
             hscrollbar-policy: automatic;
 
-            TextView text_editor {
+            GtkSource.View text_editor {
               visible: true;
               monospace: true;
               hexpand: true;

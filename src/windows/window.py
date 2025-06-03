@@ -2,15 +2,15 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
+gi.require_version("GtkSource", "5")
 
-from gi.repository import Adw, Gtk, Gdk, Gio, Pango  # type: ignore # noqa: E402
+from gi.repository import Adw, Gtk, Gdk, Gio, Pango, GtkSource  # type: ignore # noqa: E402
 from gettext import gettext as _  # noqa: E402
 from ..services.file_manager import FileManager  # noqa: E402
 from ..services.conf_manager import ConfManager  # noqa: E402
 from ..models.note import Note  # noqa: E402
 from ..widgets.note_list_item import NoteListItem  # noqa: E402
 from ..widgets.rename_popover import RenamePopover  # noqa: E402
-from ..utils.constants import COLOR_SCHEMES  # noqa: E402
 from ..utils import logger  # noqa: E402
 
 
@@ -21,7 +21,7 @@ class NotyWindow(Adw.ApplicationWindow):
     search_entry: Gtk.SearchEntry = Gtk.Template.Child()
     results_list_revealer: Gtk.Revealer = Gtk.Template.Child()
     notes_list_view: Gtk.ListView = Gtk.Template.Child()
-    text_editor: Gtk.TextView = Gtk.Template.Child()
+    text_editor: GtkSource.View = Gtk.Template.Child()
     notes_list_container: Gtk.Box = Gtk.Template.Child()
     toast_overlay: Adw.ToastOverlay = Gtk.Template.Child()
 
@@ -118,8 +118,28 @@ class NotyWindow(Adw.ApplicationWindow):
         self.text_editor.add_controller(editor_key_controller)
 
     def _setup_text_view(self):
-        self.source_buffer = Gtk.TextBuffer()
+        self.source_buffer = GtkSource.Buffer()
         self.text_editor.set_buffer(self.source_buffer)
+
+        show_markdown_syntax = self.confman.conf.get(
+            "show_markdown_syntax_highlighting", True
+        )
+        if show_markdown_syntax:
+            language_manager = GtkSource.LanguageManager.get_default()
+            markdown_language = language_manager.get_language("markdown")
+            if markdown_language:
+                self.source_buffer.set_language(markdown_language)
+            else:
+                logger.warning(
+                    "Markdown language not found during setup. Syntax highlighting disabled."
+                )
+
+        # TODO: Make these configurable
+        self.text_editor.set_show_line_numbers(True)
+        self.text_editor.set_highlight_current_line(True)
+        self.text_editor.set_tab_width(4)
+        self.text_editor.set_insert_spaces_instead_of_tabs(True)
+        self.text_editor.set_auto_indent(True)
 
         self.source_buffer.connect("changed", self._on_buffer_changed)
         self.text_editor.connect("notify::has-focus", self._on_editor_focus_changed)
@@ -176,6 +196,11 @@ class NotyWindow(Adw.ApplicationWindow):
             self.confman.conf["windowsize"]["height"] = height
             self.confman.save_conf()
             logger.info(f"Saving window size: {width}x{height}")
+
+    def show_toast(self, message, timeout=3):
+        toast = Adw.Toast.new(message)
+        toast.set_timeout(timeout)
+        self.toast_overlay.add_toast(toast)
 
     def _on_search_focus_changed(self, widget, pspec):
         if widget.has_focus():
@@ -582,66 +607,108 @@ class NotyWindow(Adw.ApplicationWindow):
         logger.debug("Sort order updated")
 
     def _apply_editor_settings(self, *args):
-        logger.debug("Applying editor settings (TextView)")  # Debug
+        logger.debug(
+            "Applying editor settings (using GtkSourceView style schemes + CSS for font)"
+        )
 
         font_size = self.confman.conf.get("font_size", 12)
-        color_scheme = self.confman.conf.get("editor_color_scheme", "default")
+        color_scheme_key = self.confman.conf.get("editor_color_scheme", "default")
         use_custom_font = self.confman.conf.get("use_custom_font", False)
-        custom_font = self.confman.conf.get("custom_font", "Monospace 12")
+        custom_font_name = self.confman.conf.get("custom_font", "Monospace 12")
+        show_markdown_syntax = self.confman.conf.get(
+            "show_markdown_syntax_highlighting", True
+        )
 
-        style_manager = Adw.StyleManager.get_default()
-        is_dark = style_manager.get_color_scheme() in [
+        # 1. Apply Font via CSS (as this was working well)
+        font_family_name = "Monospace"
+        if use_custom_font:
+            try:
+                font_desc = Pango.FontDescription.from_string(custom_font_name)
+                parsed_family_name = font_desc.get_family()
+                if parsed_family_name:
+                    font_family_name = parsed_family_name
+                else:
+                    logger.warning(
+                        f"Could not determine font family from '{custom_font_name}'. Using Monospace."
+                    )
+            except Exception as e:
+                logger.warning(
+                    f"Could not parse custom font string '{custom_font_name}': {e}. Using Monospace."
+                )
+
+        css = f"""
+        textview {{
+            font-family: '{font_family_name}';
+            font-size: {font_size}pt;
+        }}
+        """
+        css_provider = Gtk.CssProvider()
+        css_provider.load_from_data(css.encode())
+
+        style_context = self.text_editor.get_style_context()
+        if (
+            hasattr(self, "_custom_font_style_provider")
+            and self._custom_font_style_provider
+        ):
+            style_context.remove_provider(self._custom_font_style_provider)
+        style_context.add_provider(
+            css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+        self._custom_font_style_provider = css_provider  # Store for removal/update
+
+        if show_markdown_syntax:
+            language_manager = GtkSource.LanguageManager.get_default()
+            markdown_language = language_manager.get_language("markdown")
+            if markdown_language:
+                self.source_buffer.set_language(markdown_language)
+                self._apply_source_style_scheme(color_scheme_key)
+            else:
+                logger.warning(
+                    "Markdown language not found. Syntax highlighting disabled."
+                )
+                self.source_buffer.set_language(None)
+                self.source_buffer.set_style_scheme(None)
+        else:
+            self.source_buffer.set_language(None)
+            self.source_buffer.set_style_scheme(None)
+
+    def _apply_source_style_scheme(self, app_scheme_key):
+        """Apply GtkSourceView style scheme based on a mapping from app's color_scheme_key."""
+        style_manager_adw = Adw.StyleManager.get_default()
+        is_dark_system = style_manager_adw.get_color_scheme() in [
             Adw.ColorScheme.PREFER_DARK,
             Adw.ColorScheme.FORCE_DARK,
         ]
 
-        if color_scheme not in COLOR_SCHEMES:
-            color_scheme = "default"
+        # TODO: temporary fix (try to improve it to support custom color schemes)
+        scheme_id_mapping = {
+            "default": "Adwaita-dark" if is_dark_system else "Adwaita",
+            "solarized_light": "solarized-light",
+            "solarized_dark": "solarized-dark",
+            "cobalt": "cobalt",
+            "kate": "kate",
+        }
 
-        scheme_colors = COLOR_SCHEMES[color_scheme]
+        # Fallback to a system default if the key isn't in your mapping or the mapped scheme isn't found
+        fallback_scheme_id = "Adwaita-dark" if is_dark_system else "Adwaita"
+        target_scheme_id = scheme_id_mapping.get(app_scheme_key, fallback_scheme_id)
 
-        # For default scheme, adapt to light/dark mode
-        if color_scheme == "default" and is_dark:
-            scheme_colors = {
-                "text": "#ffffff",
-                "background": "#2d2d2d",
-                "selection": "rgba(120, 120, 120, 0.4)",
-            }
+        scheme_manager_source = GtkSource.StyleSchemeManager.get_default()
+        style_scheme = scheme_manager_source.get_scheme(target_scheme_id)
 
-        # Prepare CSS for the TextView
-        css = ""
+        if not style_scheme:
+            logger.warning(
+                f"GtkSourceView style scheme '{target_scheme_id}' not found. Trying fallback '{fallback_scheme_id}'."
+            )
+            style_scheme = scheme_manager_source.get_scheme(fallback_scheme_id)
 
-        if use_custom_font:
-            font_desc = Pango.FontDescription.from_string(custom_font)
-            family = font_desc.get_family()
-            css += f"""
-            textview {{
-                font-family: '{family}';
-                font-size: {font_size}pt;
-                color: {scheme_colors["text"]};
-                background-color: {scheme_colors["background"]};
-            }}
-            """
+        if style_scheme:
+            self.source_buffer.set_style_scheme(style_scheme)
+            logger.info(f"Applied GtkSourceView style scheme: {style_scheme.get_id()}")
         else:
-            css += f"""
-            textview {{
-                font-size: {font_size}pt;
-                color: {scheme_colors["text"]};
-                background-color: {scheme_colors["background"]};
-            }}
-            """
-
-        css += f"""
-        textview text selection {{
-            background-color: {scheme_colors["selection"]};
-        }}
-        """
-
-        css_provider = Gtk.CssProvider()
-        css_provider.load_from_data(css.encode())
-        self.text_editor.get_style_context().add_provider(
-            css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-        )
+            logger.error(
+                f"Could not apply any GtkSourceView style scheme (tried {target_scheme_id} and {fallback_scheme_id}). Editor might look plain."
+            )
 
     def _find_position_by_item(self, item_to_find):
         for i in range(self.sort_model.get_n_items()):
