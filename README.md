@@ -91,7 +91,7 @@ flatpak install --or-update noty.flatpak
 - [x] Custom font picker
 - [x] Full markdown support (GtkSourceView integration)
 - [x] Vim mode
-- [ ] Custom color scheme picker
+- [x] Custom color scheme importer
 
 ## License
 
