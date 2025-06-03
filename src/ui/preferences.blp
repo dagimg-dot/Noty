@@ -142,6 +142,29 @@ template $PreferencesDialog: Adw.PreferencesDialog {
                     };
                 }
             }
+
+            Adw.ActionRow {
+                title: _("Import Custom Style Scheme");
+                subtitle: _("Add custom GtkSourceView .xml style schemes");
+                activatable-widget: btn_import_scheme;
+
+                Button btn_import_scheme {
+                    valign: center;
+                    tooltip-text: _("Import a .xml style scheme file");
+
+                    Box {
+                        spacing: 6;
+
+                        Image {
+                            icon-name: "document-open-symbolic";
+                        }
+
+                        Label {
+                            label: _("Import...");
+                        }
+                    }
+                }
+            }
         }
 
         Adw.PreferencesGroup {

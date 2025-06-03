@@ -8,6 +8,7 @@ from gi.repository import Adw, Gtk, Gdk, Gio, Pango, GtkSource  # type: ignore #
 from gettext import gettext as _  # noqa: E402
 from ..services.file_manager import FileManager  # noqa: E402
 from ..services.conf_manager import ConfManager  # noqa: E402
+from ..services.style_scheme_manager import StyleSchemeManager  # noqa: E402
 from ..models.note import Note  # noqa: E402
 from ..widgets.note_list_item import NoteListItem  # noqa: E402
 from ..widgets.rename_popover import RenamePopover  # noqa: E402
@@ -30,6 +31,7 @@ class NotyWindow(Adw.ApplicationWindow):
 
         self.confman = ConfManager()
         self.file_manager = FileManager()
+        self.scheme_manager = StyleSchemeManager()
 
         # Set initial window size from config if persistence is enabled
         if self.confman.conf["persist_window_size"]:
@@ -758,41 +760,33 @@ class NotyWindow(Adw.ApplicationWindow):
             self.source_buffer.set_style_scheme(None)
 
     def _apply_source_style_scheme(self, app_scheme_key):
-        """Apply GtkSourceView style scheme based on a mapping from app's color_scheme_key."""
+        """Apply GtkSourceView style scheme using the StyleSchemeManager service."""
         style_manager_adw = Adw.StyleManager.get_default()
         is_dark_system = style_manager_adw.get_color_scheme() in [
             Adw.ColorScheme.PREFER_DARK,
             Adw.ColorScheme.FORCE_DARK,
         ]
 
-        # TODO: temporary fix (try to improve it to support custom color schemes)
-        scheme_id_mapping = {
-            "default": "Adwaita-dark" if is_dark_system else "Adwaita",
-            "solarized_light": "solarized-light",
-            "solarized_dark": "solarized-dark",
-            "cobalt": "cobalt",
-            "kate": "kate",
-        }
-
-        # Fallback to a system default if the key isn't in your mapping or the mapped scheme isn't found
-        fallback_scheme_id = "Adwaita-dark" if is_dark_system else "Adwaita"
-        target_scheme_id = scheme_id_mapping.get(app_scheme_key, fallback_scheme_id)
-
-        scheme_manager_source = GtkSource.StyleSchemeManager.get_default()
-        style_scheme = scheme_manager_source.get_scheme(target_scheme_id)
-
-        if not style_scheme:
-            logger.warning(
-                f"GtkSourceView style scheme '{target_scheme_id}' not found. Trying fallback '{fallback_scheme_id}'."
-            )
-            style_scheme = scheme_manager_source.get_scheme(fallback_scheme_id)
+        # Try to get the scheme directly by ID (works for both custom and bundled schemes)
+        style_scheme = self.scheme_manager.get_scheme_by_id(app_scheme_key)
 
         if style_scheme:
             self.source_buffer.set_style_scheme(style_scheme)
             logger.info(f"Applied GtkSourceView style scheme: {style_scheme.get_id()}")
+            return
+
+        # If scheme not found, apply appropriate default based on system theme
+        fallback_scheme_id = "Adwaita-dark" if is_dark_system else "Adwaita"
+        fallback_scheme = self.scheme_manager.get_scheme_by_id(fallback_scheme_id)
+
+        if fallback_scheme:
+            self.source_buffer.set_style_scheme(fallback_scheme)
+            logger.info(
+                f"Applied fallback GtkSourceView style scheme: {fallback_scheme.get_id()}"
+            )
         else:
             logger.error(
-                f"Could not apply any GtkSourceView style scheme (tried {target_scheme_id} and {fallback_scheme_id}). Editor might look plain."
+                "Could not apply any GtkSourceView style scheme. Editor might look plain."
             )
 
     def _find_position_by_item(self, item_to_find):

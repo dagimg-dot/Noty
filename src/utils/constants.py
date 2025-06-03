@@ -3,46 +3,11 @@ def get_numbered_dict(d):
 
 
 COLOR_SCHEMES = {
-    "default": {
-        "text": "#000000",
-        "background": "#ffffff",
-        "selection": "rgba(180, 180, 180, 0.4)",
-    },
-    "solarized_light": {
-        "text": "#657b83",
-        "background": "#fdf6e3",
-        "selection": "rgba(180, 180, 180, 0.4)",
-    },
-    "solarized_dark": {
-        "text": "#839496",
-        "background": "#002b36",
-        "selection": "rgba(120, 120, 120, 0.4)",
-    },
-    "monokai": {
-        "text": "#f8f8f2",
-        "background": "#272822",
-        "selection": "rgba(120, 120, 120, 0.4)",
-    },
-    "cobalt": {
-        "text": "#ffffff",
-        "background": "#002240",
-        "selection": "rgba(120, 120, 120, 0.4)",
-    },
-    "nord": {
-        "text": "#d8dee9",
-        "background": "#2e3440",
-        "selection": "rgba(120, 120, 120, 0.4)",
-    },
-    "gruvbox": {
-        "text": "#ebdbb2",
-        "background": "#282828",
-        "selection": "rgba(120, 120, 120, 0.4)",
-    },
-    "tokyo_night": {
-        "text": "#d7d7d7",
-        "background": "#1a1b26",
-        "selection": "rgba(120, 120, 120, 0.4)",
-    },
+    "default": 0,
+    "solarized_light": 1,
+    "solarized_dark": 2,
+    "cobalt": 3,
+    "kate": 4,
 }
 
 

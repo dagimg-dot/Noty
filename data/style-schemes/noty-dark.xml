@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Noty Dark - A comfortable dark theme for late-night note-taking
+  Based on modern dark theme principles with good contrast and readability
+-->
+<style-scheme id="noty-dark" _name="Noty Dark" version="1.0">
+  <author>Noty App</author>
+  <_description>A comfortable dark theme for late-night note-taking and markdown editing</_description>
+
+  <!-- Global settings -->
+  <style name="text" foreground="#e6edf3" background="#0d1117"/>
+  <style name="selection" foreground="#e6edf3" background="#264f78"/>
+  <style name="cursor" foreground="#ffffff"/>
+  <style name="secondary-cursor" foreground="#a0a0a0"/>
+  <style name="current-line" background="#161b22"/>
+  <style name="line-numbers" foreground="#6e7681" background="#0d1117"/>
+  <style name="current-line-number" foreground="#f0f6fc" background="#161b22" bold="true"/>
+  <style name="draw-spaces" foreground="#484f58"/>
+  <style name="right-margin" foreground="#30363d" background="#30363d"/>
+  <style name="bracket-match" background="#3d444d" bold="true"/>
+  <style name="bracket-mismatch" foreground="#ffffff" background="#da3633" bold="true"/>
+  <style name="search-match" foreground="#000000" background="#ffd33d"/>
+
+  <!-- Markdown specific -->
+  <style name="markdown:header" foreground="#58a6ff" bold="true"/>
+  <style name="markdown:emphasis" foreground="#e6edf3" italic="true"/>
+  <style name="markdown:strong-emphasis" foreground="#e6edf3" bold="true"/>
+  <style name="markdown:code" foreground="#f85149" background="#161b22"/>
+  <style name="markdown:link-text" foreground="#58a6ff" underline="true"/>
+  <style name="markdown:url" foreground="#bc8cff"/>
+  <style name="markdown:blockquote-marker" foreground="#8b949e"/>
+  <style name="markdown:horizontal-rule" foreground="#30363d"/>
+  <style name="markdown:list-marker" foreground="#8b949e" bold="true"/>
+
+  <!-- General syntax highlighting -->
+  <style name="def:comment" foreground="#8b949e" italic="true"/>
+  <style name="def:string" foreground="#a5d6ff"/>
+  <style name="def:net-address-in-comment" foreground="#58a6ff" italic="false" underline="true"/>
+  <style name="def:keyword" foreground="#ff7b72" bold="true"/>
+  <style name="def:type" foreground="#ffa657"/>
+  <style name="def:constant" foreground="#79c0ff"/>
+  <style name="def:decimal" foreground="#79c0ff"/>
+  <style name="def:base-n-integer" foreground="#79c0ff"/>
+  <style name="def:floating-point" foreground="#79c0ff"/>
+  <style name="def:complex" foreground="#79c0ff"/>
+  <style name="def:character" foreground="#a5d6ff"/>
+  <style name="def:special-char" foreground="#ff7b72"/>
+  <style name="def:builtin" foreground="#d2a8ff"/>
+  <style name="def:preprocessor" foreground="#d2a8ff"/>
+  <style name="def:identifier" foreground="#e6edf3"/>
+  <style name="def:function" foreground="#d2a8ff"/>
+  <style name="def:error" foreground="#ffffff" background="#da3633" bold="true"/>
+  <style name="def:warning" foreground="#ffa657"/>
+  <style name="def:note" foreground="#58a6ff" bold="true"/>
+  <style name="def:underlined" underline="true"/>
+</style-scheme> 

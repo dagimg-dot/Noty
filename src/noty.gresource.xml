@@ -7,6 +7,13 @@
     <file preprocess="xml-stripblanks">ui/preferences.ui</file>
     <file preprocess="xml-stripblanks">ui/rename_popover.ui</file>
   </gresource>
+  <gresource prefix="/com/dagimg/noty/style-schemes">
+    <file>../data/style-schemes/noty-classic.xml</file>
+    <file>../data/style-schemes/noty-dark.xml</file>
+    <file>../data/style-schemes/coldark-dark.xml</file>
+    <file>../data/style-schemes/nord.xml</file>
+    <file>../data/style-schemes/tokyo-night.xml</file>
+  </gresource>
   <gresource prefix="/com/dagimg/noty/icons/scalable/actions">
     <file preprocess="xml-stripblanks" alias="entry-clear-symbolic.svg">../data/icons/hicolor/scalable/actions/entry-clear-symbolic.svg</file>
   </gresource>

@@ -1,14 +1,16 @@
 import gi
 import os
 from gettext import gettext as _
+from ..services.conf_manager import ConfManager
+from ..services.style_scheme_manager import StyleSchemeManager
+from ..utils.constants import SORTING_METHODS, COLOR_SCHEMES, THEME
+from ..utils import logger
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
+gi.require_version("GtkSource", "5")
 
 from gi.repository import Gtk, Adw, Gio, Pango, Gdk  # noqa: E402 # type: ignore
-from ..services.conf_manager import ConfManager  # noqa: E402
-from ..utils.constants import SORTING_METHODS, COLOR_SCHEMES, THEME  # noqa: E402
-from ..utils.logger import logger  # noqa: E402
 
 
 @Gtk.Template(resource_path="/com/dagimg/noty/ui/preferences.ui")
@@ -39,11 +41,13 @@ class PreferencesDialog(Adw.PreferencesDialog):
     font_dialog_btn: Gtk.FontDialogButton = Gtk.Template.Child()
     spin_button_font_size: Gtk.SpinButton = Gtk.Template.Child()
     switch_vim_mode: Gtk.Switch = Gtk.Template.Child()
+    btn_import_scheme: Gtk.Button = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.confman = ConfManager()
         self.style_manager = Adw.StyleManager.get_default()
+        self.scheme_manager = StyleSchemeManager()
 
         # Setup toast overlay
         self._setup_toast_overlay()
@@ -56,6 +60,9 @@ class PreferencesDialog(Adw.PreferencesDialog):
         self.style_manager.connect(
             "notify::color-scheme", self._on_system_theme_changed
         )
+
+        # Connect to style scheme manager signals
+        self.scheme_manager.connect("schemes_updated", self._on_schemes_updated)
 
         # Populate dropdown models from constants
         self._populate_dropdown_models()
@@ -82,6 +89,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
         self.dropdown_color_scheme.connect(
             "notify::selected", self.on_color_scheme_changed
         )
+        self.btn_import_scheme.connect("clicked", self.on_import_scheme_clicked)
         self.switch_markdown_syntax.connect(
             "notify::active", self.on_markdown_syntax_changed
         )
@@ -114,9 +122,54 @@ class PreferencesDialog(Adw.PreferencesDialog):
         for theme_name in THEME.keys():
             self.theme_model.append(_(theme_name.title()))
 
+        self.color_scheme_model.splice(0, self.color_scheme_model.get_n_items())
+
         for scheme_name in COLOR_SCHEMES.keys():
             display_name = scheme_name.replace("_", " ").title()
             self.color_scheme_model.append(_(display_name))
+
+        self._load_custom_schemes()
+
+    def _load_custom_schemes(self):
+        """Load custom schemes from the service and add to dropdown"""
+        try:
+            custom_schemes = self.scheme_manager.get_custom_scheme_mapping()
+
+            for scheme_id, scheme_name in custom_schemes.items():
+                display_name = f"[Custom] {scheme_name}"
+                self.color_scheme_model.append(display_name)
+
+        except Exception as e:
+            logger.error(f"Error loading custom schemes: {e}")
+
+    def _on_schemes_updated(self, scheme_manager):
+        """Handle when schemes are updated in the service"""
+        self._populate_dropdown_models()
+
+        self._reload_scheme_selection()
+
+    def _reload_scheme_selection(self):
+        """Reload the scheme selection in the dropdown"""
+        current_scheme = self.confman.conf["editor_color_scheme"]
+
+        if current_scheme in COLOR_SCHEMES:
+            self.dropdown_color_scheme.set_selected(
+                list(COLOR_SCHEMES.keys()).index(current_scheme)
+            )
+        else:
+            custom_schemes = self.scheme_manager.get_custom_scheme_mapping()
+            if current_scheme in custom_schemes:
+                builtin_count = len(COLOR_SCHEMES)
+                custom_scheme_ids = list(custom_schemes.keys())
+                try:
+                    custom_index = custom_scheme_ids.index(current_scheme)
+                    self.dropdown_color_scheme.set_selected(
+                        builtin_count + custom_index
+                    )
+                except ValueError:
+                    self.dropdown_color_scheme.set_selected(0)
+            else:
+                self.dropdown_color_scheme.set_selected(0)
 
     def load_settings(self):
         self.label_notes_dir.set_label(os.path.basename(self.confman.conf["notes_dir"]))
@@ -131,7 +184,6 @@ class PreferencesDialog(Adw.PreferencesDialog):
             self.confman.conf["use_file_extension"]
         )
 
-        # Set dropdown selections from config
         current_sorting = self.confman.conf["sorting_method"]
         if current_sorting in SORTING_METHODS:
             self.dropdown_sorting_method.set_selected(SORTING_METHODS[current_sorting])
@@ -145,10 +197,28 @@ class PreferencesDialog(Adw.PreferencesDialog):
             self.dropdown_theme.set_selected(THEME[current_theme])
 
         current_scheme = self.confman.conf["editor_color_scheme"]
+
         if current_scheme in COLOR_SCHEMES:
             self.dropdown_color_scheme.set_selected(
                 list(COLOR_SCHEMES.keys()).index(current_scheme)
             )
+        else:
+            custom_schemes = self.scheme_manager.get_custom_scheme_mapping()
+            if current_scheme in custom_schemes:
+                builtin_count = len(COLOR_SCHEMES)
+                custom_scheme_ids = list(custom_schemes.keys())
+                try:
+                    custom_index = custom_scheme_ids.index(current_scheme)
+                    self.dropdown_color_scheme.set_selected(
+                        builtin_count + custom_index
+                    )
+                except ValueError:
+                    logger.warning(
+                        f"Custom scheme '{current_scheme}' not found in mapping"
+                    )
+                    self.dropdown_color_scheme.set_selected(0)
+            else:
+                self.dropdown_color_scheme.set_selected(0)
 
         self.switch_markdown_syntax.set_active(
             self.confman.conf["show_markdown_syntax_highlighting"]
@@ -263,11 +333,25 @@ class PreferencesDialog(Adw.PreferencesDialog):
 
     def on_color_scheme_changed(self, dropdown, param):
         selected = dropdown.get_selected()
-        schemes = list(COLOR_SCHEMES.keys())
-        if 0 <= selected < len(schemes):
-            self.confman.conf["editor_color_scheme"] = schemes[selected]
-            self.confman.save_conf()
-            self.confman.emit("editor_color_scheme_changed", schemes[selected])
+
+        builtin_count = len(COLOR_SCHEMES)
+
+        if selected < builtin_count:
+            schemes = list(COLOR_SCHEMES.keys())
+            selected_scheme = schemes[selected]
+        else:
+            custom_schemes = self.scheme_manager.get_custom_scheme_mapping()
+            custom_scheme_ids = list(custom_schemes.keys())
+            custom_index = selected - builtin_count
+            if 0 <= custom_index < len(custom_scheme_ids):
+                selected_scheme = custom_scheme_ids[custom_index]
+            else:
+                logger.warning(f"Invalid custom scheme index: {custom_index}")
+                return
+
+        self.confman.conf["editor_color_scheme"] = selected_scheme
+        self.confman.save_conf()
+        self.confman.emit("editor_color_scheme_changed", selected_scheme)
 
     def on_markdown_syntax_changed(self, switch, param):
         active = switch.get_active()
@@ -396,3 +480,92 @@ class PreferencesDialog(Adw.PreferencesDialog):
         self.confman.conf["persist_window_size"] = active
         self.confman.save_conf()
         self.confman.emit("persist_window_size_changed", active)
+
+    def on_import_scheme_clicked(self, button):
+        file_dialog = Gtk.FileDialog()
+        file_dialog.set_title(_("Import Style Scheme"))
+
+        # Create file filter for XML files
+        xml_filter = Gtk.FileFilter()
+        xml_filter.set_name(_("GtkSourceView Style Schemes (*.xml)"))
+        xml_filter.add_pattern("*.xml")
+        xml_filter.add_mime_type("text/xml")
+        xml_filter.add_mime_type("application/xml")
+
+        filter_list = Gio.ListStore.new(Gtk.FileFilter)
+        filter_list.append(xml_filter)
+        file_dialog.set_filters(filter_list)
+        file_dialog.set_default_filter(xml_filter)
+
+        # Open file dialog
+        file_dialog.open(self.get_parent(), None, self._on_import_scheme_file_selected)
+
+    def _on_import_scheme_file_selected(self, dialog, result):
+        """Handle the selected style scheme file"""
+        try:
+            file = dialog.open_finish(result)
+            if file:
+                file_path = file.get_path()
+                self._import_style_scheme_file(file_path)
+        except Exception as e:
+            logger.error(f"Error selecting style scheme file: {e}")
+            self._show_toast(_("Failed to open file dialog"))
+
+    def _import_style_scheme_file(self, file_path):
+        """Import and validate a style scheme file using the service"""
+        try:
+            # Use the service to import the scheme
+            success, message, scheme_name = self.scheme_manager.import_scheme_file(
+                file_path
+            )
+
+            if success:
+                self._show_toast(_(message))
+            else:
+                if "already exists" in message:
+                    self._show_replace_confirmation(file_path, scheme_name)
+                else:
+                    self._show_toast(_(message))
+
+        except Exception as e:
+            logger.error(f"Error importing style scheme: {e}")
+            self._show_toast(_("Failed to import style scheme"))
+
+    def _show_replace_confirmation(self, source_path, scheme_name):
+        """Show confirmation dialog for replacing existing scheme"""
+        file_name = os.path.basename(source_path)
+        dialog = Adw.MessageDialog.new(
+            self.get_parent(),
+            _("Replace Style Scheme?"),
+            _(
+                f"A style scheme named '{file_name}' already exists. Do you want to replace it?"
+            ),
+        )
+
+        dialog.add_response("cancel", _("Cancel"))
+        dialog.add_response("replace", _("Replace"))
+        dialog.set_response_appearance("replace", Adw.ResponseAppearance.DESTRUCTIVE)
+        dialog.set_default_response("cancel")
+        dialog.set_close_response("cancel")
+
+        dialog.connect("response", self._on_replace_confirmation_response, source_path)
+        dialog.present()
+
+    def _on_replace_confirmation_response(self, dialog, response_id, source_path):
+        """Handle replace confirmation response using the service"""
+        if response_id == "replace":
+            try:
+                success, message, scheme_name = self.scheme_manager.replace_scheme_file(
+                    source_path
+                )
+
+                if success:
+                    self._show_toast(_(message))
+                else:
+                    self._show_toast(_(message))
+
+            except Exception as e:
+                logger.error(f"Error replacing style scheme: {e}")
+                self._show_toast(_("Failed to replace style scheme"))
+
+        dialog.destroy()

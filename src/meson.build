@@ -77,6 +77,7 @@ noty_sources_main = [
 noty_sources_services = [
   'services/conf_manager.py',
   'services/file_manager.py',
+  'services/style_scheme_manager.py',
 ]
 
 noty_sources_models = [

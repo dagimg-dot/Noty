@@ -56,7 +56,7 @@ class ConfManager(metaclass=singleton.Singleton):
         "sorting_method": "name",
         "activate_row_on_select": False,
         "use_file_extension": False,
-        "editor_color_scheme": "default",
+        "editor_color_scheme": "noty-classic",
         "recurse_subfolders": False,
         "font_size": 12,
         "use_custom_font": False,
