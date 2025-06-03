@@ -99,8 +99,14 @@ template $HelpOverlay: ShortcutsWindow {
 
       ShortcutsShortcut {
         visible: true;
-        accelerator: "Escape";
-        title: _("Move to the search bar");
+        accelerator: "<Alt>v";
+        title: _("Toggle Vim mode. (To disable it first go to insert mode)");
+      }
+
+      ShortcutsShortcut {
+        visible: true;
+        accelerator: "Escape <Alt>s";
+        title: _("Move to the search bar\n(Alt+S always works, Escape only when Vim mode is off)");
       }
 
       ShortcutsShortcut {

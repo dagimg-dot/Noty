@@ -380,19 +380,27 @@ class NotyWindow(Adw.ApplicationWindow):
     def _on_editor_key_pressed(self, controller, keyval, keycode, state):
         vim_mode_enabled = self.confman.conf.get("editor_vim_mode", False)
         ctrl_pressed = state & Gdk.ModifierType.CONTROL_MASK
+        alt_pressed = state & Gdk.ModifierType.ALT_MASK
 
-        # Handle search focus based on Vim mode
-        if vim_mode_enabled:
-            # In Vim mode, use Ctrl+C to focus search (avoid conflict with Vim's Escape)
-            if ctrl_pressed and keyval == Gdk.KEY_c:
-                self._search_entry_focus()
-                return True
-        else:
-            # Standard mode, use Escape to focus search
-            if keyval == Gdk.KEY_Escape:
-                self._search_entry_focus()
-                return True
+        # Toggle Vim mode with Alt+V
+        if alt_pressed and keyval == Gdk.KEY_v:
+            new_vim_state = not vim_mode_enabled
+            self.confman.conf["editor_vim_mode"] = new_vim_state
+            self.confman.save_conf()
+            self.confman.emit("vim_mode_changed", new_vim_state)
+            return True
 
+        # Focus search with Alt+S (works regardless of Vim mode)
+        if alt_pressed and keyval == Gdk.KEY_s:
+            self._search_entry_focus()
+            return True
+
+        # Handle Escape key only when Vim mode is disabled
+        if not vim_mode_enabled and keyval == Gdk.KEY_Escape:
+            self._search_entry_focus()
+            return True
+
+        # Font size shortcuts work regardless of Vim mode
         if ctrl_pressed:
             if keyval == Gdk.KEY_plus or keyval == Gdk.KEY_equal:
                 current_size = self.confman.conf.get("font_size", 12)
@@ -446,10 +454,12 @@ class NotyWindow(Adw.ApplicationWindow):
         )
         if is_enabled:
             self._enable_vim_bindings()
-            self.show_toast("Vim mode enabled. Use Ctrl+C to focus search.", 5)
+            self.show_toast("Vim mode enabled. Use Alt+S to focus search.", 5)
         else:
             self._disable_vim_bindings()
-            self.show_toast("Vim mode disabled. Use Escape to focus search.", 3)
+            self.show_toast(
+                "Vim mode disabled. Use Escape or Alt+S to focus search.", 3
+            )
 
     # --- ListView Factory Callbacks ---
 
