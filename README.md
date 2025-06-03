@@ -90,6 +90,7 @@ flatpak install --or-update noty.flatpak
 - [x] Window size persistence
 - [x] Custom font picker
 - [x] Full markdown support (GtkSourceView integration)
+- [x] Vim mode
 - [ ] Custom color scheme picker
 
 ## License
