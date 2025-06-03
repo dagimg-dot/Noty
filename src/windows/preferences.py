@@ -5,7 +5,7 @@ from gettext import gettext as _
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Gtk, Adw, Gio, Pango  # noqa: E402 # type: ignore
+from gi.repository import Gtk, Adw, Gio, Pango, Gdk  # noqa: E402 # type: ignore
 from ..services.conf_manager import ConfManager  # noqa: E402
 from ..utils.constants import SORTING_METHODS, COLOR_SCHEMES, THEME  # noqa: E402
 from ..utils.logger import logger  # noqa: E402
@@ -333,12 +333,26 @@ class PreferencesDialog(Adw.PreferencesDialog):
             dialog.set_default_response("cancel")
             dialog.set_close_response("cancel")
 
+            entry.connect("activate", lambda _: dialog.response("submit"))
+
+            key_controller = Gtk.EventControllerKey()
+            key_controller.connect(
+                "key-pressed", self._on_vim_dialog_key_pressed, dialog
+            )
+            dialog.add_controller(key_controller)
+
             dialog.connect("response", self._on_vim_mode_dialog_response, switch, entry)
             dialog.present()
         else:
             self.confman.conf["editor_vim_mode"] = False
             self.confman.save_conf()
             self.confman.emit("vim_mode_changed", False)
+
+    def _on_vim_dialog_key_pressed(self, controller, keyval, keycode, state, dialog):
+        if keyval == Gdk.KEY_Escape:
+            dialog.response("cancel")
+            return True
+        return False
 
     def _on_vim_mode_dialog_response(self, dialog, response_id, switch, entry):
         if response_id == "submit":
