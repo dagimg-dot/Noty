@@ -89,8 +89,8 @@ flatpak install --or-update noty.flatpak
 - [x] Note deletion
 - [x] Window size persistence
 - [x] Custom font picker
+- [x] Full markdown support (GtkSourceView integration)
 - [ ] Custom color scheme picker
-- [ ] Full markdown support
 
 ## License
 
