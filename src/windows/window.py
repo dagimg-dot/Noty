@@ -387,7 +387,8 @@ class NotyWindow(Adw.ApplicationWindow):
             new_vim_state = not vim_mode_enabled
             self.confman.conf["editor_vim_mode"] = new_vim_state
             self.confman.save_conf()
-            self.confman.emit("vim_mode_changed", new_vim_state)
+            reason = "user_enabled" if new_vim_state else "user_disabled"
+            self.confman.emit("vim_mode_changed", new_vim_state, reason)
             return True
 
         # Focus search with Alt+S (works regardless of Vim mode)
@@ -448,18 +449,22 @@ class NotyWindow(Adw.ApplicationWindow):
             self._vim_key_controller = None
             self._vim_im_context = None
 
-    def _on_vim_mode_setting_changed(self, confman, is_enabled):
+    def _on_vim_mode_setting_changed(self, confman, is_enabled, reason="unknown"):
         logger.info(
-            f"Vim mode setting changed: {'Enabled' if is_enabled else 'Disabled'}"
+            f"Vim mode setting changed: {'Enabled' if is_enabled else 'Disabled'} (reason: {reason})"
         )
         if is_enabled:
             self._enable_vim_bindings()
-            self.show_toast("Vim mode enabled. Use Alt+S to focus search.", 5)
+            # Only show toast for legitimate user actions
+            if reason == "user_enabled":
+                self.show_toast("Vim mode enabled. Use Alt+S to focus search.", 5)
         else:
             self._disable_vim_bindings()
-            self.show_toast(
-                "Vim mode disabled. Use Escape or Alt+S to focus search.", 3
-            )
+            # Only show toast for legitimate user actions
+            if reason == "user_disabled":
+                self.show_toast(
+                    "Vim mode disabled. Use Escape or Alt+S to focus search.", 3
+                )
 
     # --- ListView Factory Callbacks ---
 

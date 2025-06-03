@@ -42,7 +42,7 @@ class ConfManagerSignaler(GObject.Object):
             None,
             (bool,),
         ),
-        "vim_mode_changed": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
+        "vim_mode_changed": (GObject.SignalFlags.RUN_FIRST, None, (bool, str)),
     }
 
 

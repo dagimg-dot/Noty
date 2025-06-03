@@ -346,7 +346,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
         else:
             self.confman.conf["editor_vim_mode"] = False
             self.confman.save_conf()
-            self.confman.emit("vim_mode_changed", False)
+            self.confman.emit("vim_mode_changed", False, "user_disabled")
 
     def _on_vim_dialog_key_pressed(self, controller, keyval, keycode, state, dialog):
         if keyval == Gdk.KEY_Escape:
@@ -367,14 +367,17 @@ class PreferencesDialog(Adw.PreferencesDialog):
             if is_valid_exit_command:
                 self.confman.conf["editor_vim_mode"] = True
                 self.confman.save_conf()
-                self.confman.emit("vim_mode_changed", True)
+                self.confman.emit("vim_mode_changed", True, "user_enabled")
                 dialog.destroy()
 
                 self._show_toast(_("Vim mode enabled successfully."))
             else:
                 self._show_toast(_("Incorrect Vim exit command. Vim mode not enabled."))
 
+                # Block the signal handler to prevent unwanted toast in window
+                switch.handler_block_by_func(self.on_vim_mode_changed)
                 switch.set_active(False)
+                switch.handler_unblock_by_func(self.on_vim_mode_changed)
                 dialog.destroy()
         else:
             switch.set_active(False)
