@@ -456,7 +456,7 @@ class NotyWindow(Adw.ApplicationWindow):
     def _on_factory_setup(self, factory, list_item):
         note_list_item = NoteListItem()
         list_item.set_child(note_list_item)
-        logger.debug("Factory Setup (Widget created)")  # Debug
+        logger.debug("Factory Setup (Widget created)")
 
     def _on_rename_success(self, popover, new_name):
         toast = Adw.Toast.new(f"Note renamed to '{new_name}'")
@@ -470,21 +470,17 @@ class NotyWindow(Adw.ApplicationWindow):
         note_object = list_item.get_item()
         if isinstance(note_object, Note):
             list_item.get_child().bind_to_note(note_object)
-            logger.debug(f"Factory Bind: {note_object.get_name()}")  # Debug
+            logger.debug(f"Factory Bind: {note_object.get_name()}")
         else:
-            logger.warning(
-                "Factory Bind: Item/Widget type mismatch or missing"
-            )  # Debug
+            logger.warning("Factory Bind: Item/Widget type mismatch or missing")
 
     def _on_factory_unbind(self, factory, list_item):
         note_object = list_item.get_item()
         if isinstance(note_object, Note):
             list_item.get_child().unbind(note_object)
-            logger.debug(f"Factory Unbind: {note_object.get_name()}")  # Debug
+            logger.debug(f"Factory Unbind: {note_object.get_name()}")
         else:
-            logger.warning(
-                "Factory Unbind: Item/Widget type mismatch or missing"
-            )  # Debug
+            logger.warning("Factory Unbind: Item/Widget type mismatch or missing")
 
     # --- Signal Handlers ---
 
@@ -535,7 +531,7 @@ class NotyWindow(Adw.ApplicationWindow):
 
     def _on_search_changed(self, search_entry):
         query = search_entry.get_text().strip().lower()
-        logger.debug(f"Search Query: {query}")  # Debug
+        logger.debug(f"Search Query: {query}")
         if not hasattr(self, "filter_model"):
             return
 
@@ -574,11 +570,11 @@ class NotyWindow(Adw.ApplicationWindow):
 
     def _on_editor_focus_changed(self, widget, param):
         if not widget.has_focus():
-            logger.debug("Editor Focus Lost - Saving")  # Debug
+            logger.debug("Editor Focus Lost - Saving")
             self.save_content()
             self.results_list_revealer.set_reveal_child(True)
         else:
-            logger.debug("Editor Focus Gained - Hiding Revealer")  # Debug
+            logger.debug("Editor Focus Gained - Hiding Revealer")
             self.results_list_revealer.set_reveal_child(False)
             self.source_buffer.place_cursor(self.source_buffer.get_end_iter())
 
@@ -668,7 +664,7 @@ class NotyWindow(Adw.ApplicationWindow):
         return 0
 
     def _on_sorting_method_changed(self, *args):
-        logger.debug("Sorting Method Changed - Forcing Re-Sort")  # Debug
+        logger.debug("Sorting Method Changed - Forcing Re-Sort")
         self.sorter.changed(Gtk.SorterChange.DIFFERENT)
         logger.debug("Sort order updated")
 
