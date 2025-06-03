@@ -94,9 +94,9 @@ class PreferencesDialog(Adw.PreferencesDialog):
         self.switch_custom_font.connect("notify::active", self.on_custom_font_changed)
         self.font_dialog_btn.connect("notify::font-desc", self.on_font_desc_changed)
         self.spin_button_font_size.connect("value-changed", self.on_font_size_changed)
-        self.switch_vim_mode.connect("notify::active", self.on_vim_mode_changed)
 
         self.load_settings()
+        self.switch_vim_mode.connect("notify::active", self.on_vim_mode_changed)
 
     def _setup_toast_overlay(self):
         inner = self.get_child()
@@ -172,7 +172,6 @@ class PreferencesDialog(Adw.PreferencesDialog):
             self.font_dialog_btn.set_font_desc(font_desc)
 
         self.spin_button_font_size.set_value(self.confman.conf["font_size"])
-
         # Load Vim mode setting
         self.switch_vim_mode.set_active(self.confman.conf.get("editor_vim_mode", False))
 
@@ -317,10 +316,11 @@ class PreferencesDialog(Adw.PreferencesDialog):
                 self.get_parent(),
                 _("Enable Vim Mode?"),
                 _(
-                    "This enables Vim keybindings in the editor. "
+                    "This enables Vim keybindings in the editor."
                     "To ensure you know what you are doing, please type the main command to quit Vim below:"
                 ),
             )
+            dialog.set_default_size(400, -1)
             dialog.set_body_use_markup(False)
 
             entry = Gtk.Entry()
