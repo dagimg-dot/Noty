@@ -158,6 +158,26 @@ template $PreferencesDialog: Adw.PreferencesDialog {
             }
 
             Adw.ActionRow {
+                title: _("Show Line Numbers");
+                subtitle: _("Display line numbers in the editor");
+                activatable-widget: switch_show_line_numbers;
+
+                Switch switch_show_line_numbers {
+                    valign: center;
+                }
+            }
+
+            Adw.ActionRow {
+                title: _("Highlight Current Line");
+                subtitle: _("Visually mark the current line in the editor");
+                activatable-widget: switch_highlight_current_line;
+
+                Switch switch_highlight_current_line {
+                    valign: center;
+                }
+            }
+
+            Adw.ActionRow {
                 title: _("Custom Font");
                 subtitle: _("Use a custom font for the editor");
                 activatable-widget: switch_custom_font;

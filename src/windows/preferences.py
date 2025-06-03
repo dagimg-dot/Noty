@@ -32,6 +32,8 @@ class PreferencesDialog(Adw.PreferencesDialog):
     dropdown_color_scheme: Gtk.DropDown = Gtk.Template.Child()
     color_scheme_model: Gtk.StringList = Gtk.Template.Child()
     switch_markdown_syntax: Gtk.Switch = Gtk.Template.Child()
+    switch_show_line_numbers: Gtk.Switch = Gtk.Template.Child()
+    switch_highlight_current_line: Gtk.Switch = Gtk.Template.Child()
     switch_custom_font: Gtk.Switch = Gtk.Template.Child()
     font_dialog_btn: Gtk.FontDialogButton = Gtk.Template.Child()
     spin_button_font_size: Gtk.SpinButton = Gtk.Template.Child()
@@ -77,6 +79,12 @@ class PreferencesDialog(Adw.PreferencesDialog):
         )
         self.switch_markdown_syntax.connect(
             "notify::active", self.on_markdown_syntax_changed
+        )
+        self.switch_show_line_numbers.connect(
+            "notify::active", self.on_show_line_numbers_changed
+        )
+        self.switch_highlight_current_line.connect(
+            "notify::active", self.on_highlight_current_line_changed
         )
         self.switch_custom_font.connect("notify::active", self.on_custom_font_changed)
         self.font_dialog_btn.connect("notify::font-desc", self.on_font_desc_changed)
@@ -129,6 +137,13 @@ class PreferencesDialog(Adw.PreferencesDialog):
 
         self.switch_markdown_syntax.set_active(
             self.confman.conf["show_markdown_syntax_highlighting"]
+        )
+
+        self.switch_show_line_numbers.set_active(
+            self.confman.conf.get("editor_show_line_numbers", True)
+        )
+        self.switch_highlight_current_line.set_active(
+            self.confman.conf.get("editor_highlight_current_line", True)
         )
 
         self.switch_custom_font.set_active(
@@ -244,6 +259,18 @@ class PreferencesDialog(Adw.PreferencesDialog):
         self.confman.emit(
             "markdown_syntax_highlighting_changed", "enabled" if active else "disabled"
         )
+
+    def on_show_line_numbers_changed(self, switch, param):
+        active = switch.get_active()
+        self.confman.conf["editor_show_line_numbers"] = active
+        self.confman.save_conf()
+        self.confman.emit("editor_show_line_numbers_changed", active)
+
+    def on_highlight_current_line_changed(self, switch, param):
+        active = switch.get_active()
+        self.confman.conf["editor_highlight_current_line"] = active
+        self.confman.save_conf()
+        self.confman.emit("editor_highlight_current_line_changed", active)
 
     def on_custom_font_changed(self, switch, param):
         active = switch.get_active()

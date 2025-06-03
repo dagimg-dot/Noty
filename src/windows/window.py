@@ -134,9 +134,13 @@ class NotyWindow(Adw.ApplicationWindow):
                     "Markdown language not found during setup. Syntax highlighting disabled."
                 )
 
-        # TODO: Make these configurable
-        self.text_editor.set_show_line_numbers(True)
-        self.text_editor.set_highlight_current_line(True)
+        # Read line number and current line highlight settings from config
+        self.text_editor.set_show_line_numbers(
+            self.confman.conf.get("editor_show_line_numbers", True)
+        )
+        self.text_editor.set_highlight_current_line(
+            self.confman.conf.get("editor_highlight_current_line", True)
+        )
         self.text_editor.set_tab_width(4)
         self.text_editor.set_insert_spaces_instead_of_tabs(True)
         self.text_editor.set_auto_indent(True)
@@ -168,6 +172,12 @@ class NotyWindow(Adw.ApplicationWindow):
         self.confman.connect("sorting_method_changed", self._on_sorting_method_changed)
         self.confman.connect(
             "persist_window_size_changed", self._on_persist_window_size_changed
+        )
+        self.confman.connect(
+            "editor_show_line_numbers_changed", self._apply_editor_settings
+        )
+        self.confman.connect(
+            "editor_highlight_current_line_changed", self._apply_editor_settings
         )
 
         # Rename Popover
@@ -618,6 +628,14 @@ class NotyWindow(Adw.ApplicationWindow):
         show_markdown_syntax = self.confman.conf.get(
             "show_markdown_syntax_highlighting", True
         )
+        show_line_numbers = self.confman.conf.get("editor_show_line_numbers", True)
+        highlight_current_line = self.confman.conf.get(
+            "editor_highlight_current_line", True
+        )
+
+        # Apply line numbers and current line highlight
+        self.text_editor.set_show_line_numbers(show_line_numbers)
+        self.text_editor.set_highlight_current_line(highlight_current_line)
 
         # 1. Apply Font via CSS (as this was working well)
         font_family_name = "Monospace"

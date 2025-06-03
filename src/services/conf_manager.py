@@ -32,6 +32,16 @@ class ConfManagerSignaler(GObject.Object):
         "recurse_subfolders_changed": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
         "persist_window_size_changed": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
         "custom_font_changed": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
+        "editor_show_line_numbers_changed": (
+            GObject.SignalFlags.RUN_FIRST,
+            None,
+            (bool,),
+        ),
+        "editor_highlight_current_line_changed": (
+            GObject.SignalFlags.RUN_FIRST,
+            None,
+            (bool,),
+        ),
     }
 
 
@@ -51,6 +61,8 @@ class ConfManager(metaclass=singleton.Singleton):
         "use_custom_font": False,
         "custom_font": "Monospace 12",
         "last_opened_file": None,
+        "editor_show_line_numbers": True,
+        "editor_highlight_current_line": True,
     }
 
     def __init__(self):
