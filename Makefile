@@ -13,6 +13,10 @@ run: install
 
 crun: clean run
 
+lint:
+	ruff check . --fix
+	ruff format .
+
 flatpak-install:
 	flatpak install --user --or-update -y $(PWD)/dist/noty-dev.flatpak
 
