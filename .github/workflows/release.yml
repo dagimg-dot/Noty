@@ -6,43 +6,6 @@ on:
       - "v*"
 
 jobs:
-  binary-builder:
-    name: "Binary Builder"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Get version
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y meson ninja-build python3-pip python3-dev gettext libglib2.0-dev-bin desktop-file-utils gobject-introspection libgtk-4-dev gir1.2-gtk-4.0 libadwaita-1-dev libgirepository1.0-dev
-      - name: Install python dependencies
-        run: |
-          pip install pygobject
-          pip install pygobject-stubs
-      - name: Install blueprint-compiler from source
-        run: |
-          git clone https://gitlab.gnome.org/jwestman/blueprint-compiler
-          cd blueprint-compiler
-          meson _build
-          sudo ninja -C _build install
-          cd ..
-          # Verify blueprint-compiler installation
-          blueprint-compiler --version
-      - name: Build Binary
-        run: |
-          meson setup build
-          ninja -C build
-          tar -czf noty-${{ steps.get_version.outputs.VERSION }}-linux-x86_64.tar.gz -C build/src noty
-      - name: Upload Binary artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: noty-${{ steps.get_version.outputs.VERSION }}-linux-x86_64.tar.gz
-          path: noty-${{ steps.get_version.outputs.VERSION }}-linux-x86_64.tar.gz
-          if-no-files-found: error
-
   flatpak-builder:
     name: "Flatpak Builder"
     runs-on: ubuntu-latest
@@ -68,7 +31,7 @@ jobs:
 
   release:
     name: "Create Release"
-    needs: [flatpak-builder, binary-builder]
+    needs: flatpak-builder
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -80,10 +43,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: noty-${{ steps.get_version.outputs.VERSION }}.flatpak
-      - name: Download Binary bundle
-        uses: actions/download-artifact@v4
-        with:
-          name: noty-${{ steps.get_version.outputs.VERSION }}-linux-x86_64.tar.gz
       - name: List files
         run: ls -la
       - name: Create Release
