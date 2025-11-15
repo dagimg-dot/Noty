@@ -45,9 +45,13 @@ class StyleSchemeManager(metaclass=singleton.Singleton):
 
         self._custom_schemes_dir = None
         self._custom_scheme_mapping = {}
+        self._is_initialized = False
 
-        # Initialize on creation
-        self._setup_custom_schemes_directory()
+    def _ensure_initialized(self):
+        """Ensure custom schemes directory is set up (lazy initialization)"""
+        if not self._is_initialized:
+            self._setup_custom_schemes_directory()
+            self._is_initialized = True
 
     def get_custom_schemes_directory(self):
         """Get the custom schemes directory path, creating it if necessary"""
@@ -145,6 +149,7 @@ class StyleSchemeManager(metaclass=singleton.Singleton):
 
     def get_custom_scheme_mapping(self):
         """Get the mapping of custom scheme IDs to names"""
+        self._ensure_initialized()
         return self._custom_scheme_mapping.copy()
 
     def import_scheme_file(self, file_path):
@@ -154,6 +159,7 @@ class StyleSchemeManager(metaclass=singleton.Singleton):
         Returns:
             tuple: (success: bool, message: str, scheme_name: str or None)
         """
+        self._ensure_initialized()
         try:
             if not self.validate_style_scheme(file_path):
                 return False, "Invalid style scheme file", None
@@ -191,6 +197,7 @@ class StyleSchemeManager(metaclass=singleton.Singleton):
         Returns:
             tuple: (success: bool, message: str, scheme_name: str or None)
         """
+        self._ensure_initialized()
         try:
             if not self.validate_style_scheme(file_path):
                 return False, "Invalid style scheme file", None
@@ -254,6 +261,7 @@ class StyleSchemeManager(metaclass=singleton.Singleton):
 
     def refresh_schemes(self):
         """Refresh the style scheme manager and update mappings"""
+        self._ensure_initialized()
         try:
             scheme_manager = GtkSource.StyleSchemeManager.get_default()
             scheme_manager.force_rescan()
@@ -267,6 +275,7 @@ class StyleSchemeManager(metaclass=singleton.Singleton):
 
     def get_scheme_by_id(self, scheme_id):
         """Get a GtkSourceView style scheme by ID"""
+        self._ensure_initialized()
         scheme_manager = GtkSource.StyleSchemeManager.get_default()
         return scheme_manager.get_scheme(scheme_id)
 

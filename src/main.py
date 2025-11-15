@@ -63,13 +63,14 @@ class NotyApplication(Adw.Application):
         last_file_path = self.confman.conf.get("last_opened_file")
         if last_file_path and os.path.isfile(last_file_path):
             logger.info(f"Attempting to open last file: {last_file_path}")
-            note_object = self.win.file_manager._find_note_by_path(last_file_path)
+            # Create note object immediately (without waiting for full scan)
+            note_object = self.win.file_manager.create_note_from_path(last_file_path)
             if note_object:
                 self.win._load_note_into_editor(note_object)
                 self.win.text_editor.set_sensitive(True)
             else:
                 logger.warning(
-                    f"Last opened file {last_file_path} not found by file_manager._find_note_by_path."
+                    f"Last opened file {last_file_path} could not be loaded as a note."
                 )
         elif last_file_path:
             logger.info(

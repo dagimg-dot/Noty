@@ -60,12 +60,6 @@ class NotyWindow(Adw.ApplicationWindow):
 
         self.text_editor.set_sensitive(False)  # No file open initially
 
-        self.file_manager.reload_notes()
-
-        # Debug output to see if we have notes
-        model = self.file_manager.get_notes_model()
-        logger.debug(f"Notes model has {model.get_n_items()} items")
-
         # Initially show the notes list
         self.results_list_revealer.set_reveal_child(True)
 

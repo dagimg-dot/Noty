@@ -1,4 +1,4 @@
-from gi.repository import GObject, Gio  # type: ignore
+from gi.repository import GObject, Gio, GLib  # type: ignore
 from os import listdir, path, remove, rename
 from datetime import datetime
 from .conf_manager import ConfManager
@@ -40,15 +40,20 @@ class FileManager(metaclass=singleton.Singleton):
         # Connect signals after initialization
         GObject.idle_add(self._connect_signals)
 
-        # Initial load
-        self.reload_notes()
-        self._is_initializing = False
+        # Defer initial load to avoid blocking startup
+        GLib.idle_add(self._deferred_initial_load, priority=GLib.PRIORITY_LOW)
 
     def _connect_signals(self):
         self.confman.connect("notes_dir_changed", self._handle_notes_dir_change)
         self.confman.connect(
             "markdown_syntax_highlighting_changed", self._on_settings_changed
         )
+        return False  # Don't repeat the idle callback
+
+    def _deferred_initial_load(self):
+        """Deferred initial load to avoid blocking startup"""
+        self.reload_notes()
+        self._is_initializing = False
         return False  # Don't repeat the idle callback
 
     def _on_settings_changed(self, *args):
@@ -221,13 +226,19 @@ class FileManager(metaclass=singleton.Singleton):
                 )
 
                 if is_valid_file:
-                    try:
-                        note = Note(f_path)
-                        self.notes_model.append(note)
-                        count += 1
-                        logger.debug(f"Added note: {note.get_name()}")
-                    except Exception as e:
-                        logger.error(f"Error creating Note object for {f_path}: {e}")
+                    # Check if note already exists (e.g., from loading last opened file)
+                    if self._find_note_by_path(f_path) is None:
+                        try:
+                            note = Note(f_path)
+                            self.notes_model.append(note)
+                            count += 1
+                            logger.debug(f"Added note: {note.get_name()}")
+                        except Exception as e:
+                            logger.error(
+                                f"Error creating Note object for {f_path}: {e}"
+                            )
+                    else:
+                        logger.debug(f"Note already exists, skipping: {f_path}")
 
             logger.info(f"Added {count} notes to the model")
 
@@ -293,6 +304,34 @@ class FileManager(metaclass=singleton.Singleton):
             if note.get_file_path() == note_path:
                 return note
         return None
+
+    def create_note_from_path(self, note_path):
+        """Create a Note object from a file path immediately (without scanning all files).
+
+        This is useful for loading the last opened file before the full scan completes.
+        Returns None if the file doesn't exist or isn't a valid note file.
+        """
+        if not note_path or not path.isfile(note_path):
+            return None
+
+        base_name = path.basename(note_path)
+        # Check if it's a valid note file (extensionless or .md)
+        is_valid_file = not base_name.startswith(".") and (
+            "." not in base_name or note_path.lower().endswith(".md")
+        )
+
+        if not is_valid_file:
+            return None
+
+        try:
+            note = Note(note_path)
+            # Add to model if not already present (to avoid duplicates when scan completes)
+            if self._find_note_by_path(note_path) is None:
+                self.notes_model.append(note)
+            return note
+        except Exception as e:
+            logger.error(f"Error creating Note object for {note_path}: {e}")
+            return None
 
     def _handle_notes_dir_change(self, *args):
         if len(args) >= 2:
