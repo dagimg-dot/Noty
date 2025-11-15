@@ -4,3 +4,4 @@ subprojects/
 .flatpak-builder/
 dist/
 TODO
+.venv/
