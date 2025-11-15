@@ -86,9 +86,11 @@ class NotyApplication(Adw.Application):
         """
         if not self.win:
             self.win = NotyWindow(application=self)
+            self.win.connect("realize", lambda w: self._try_open_last_file())
 
         self.win.present()
-        self._try_open_last_file()
+        if self.win.is_realized():
+            self._try_open_last_file()
 
     def on_about_action(self, *args):
         """Callback for the app.about action."""
