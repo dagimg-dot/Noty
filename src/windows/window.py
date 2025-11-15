@@ -46,6 +46,9 @@ class NotyWindow(Adw.ApplicationWindow):
         # Flag to track selection method (keyboard vs mouse)
         self._selection_from_keyboard = False
 
+        # Store cursor position for focus restoration
+        self._last_cursor_offset = None
+
         self._current_query = ""
         self._note_filter = Gtk.CustomFilter.new(self._filter_notes, None)
 
@@ -590,10 +593,27 @@ class NotyWindow(Adw.ApplicationWindow):
             logger.debug("Editor Focus Lost - Saving")
             self.save_content()
             self.results_list_revealer.set_reveal_child(True)
+
+            # Save cursor position for restoration on focus gain
+            cursor_mark = self.source_buffer.get_insert()
+            cursor_iter = self.source_buffer.get_iter_at_mark(cursor_mark)
+            self._last_cursor_offset = cursor_iter.get_offset()
         else:
             logger.debug("Editor Focus Gained - Hiding Revealer")
             self.results_list_revealer.set_reveal_child(False)
-            self.source_buffer.place_cursor(self.source_buffer.get_end_iter())
+
+            # Restore cursor position if available, otherwise place at end
+            if self._last_cursor_offset is not None:
+                try:
+                    cursor_iter = self.source_buffer.get_iter_at_offset(
+                        self._last_cursor_offset
+                    )
+                    self.source_buffer.place_cursor(cursor_iter)
+                except Exception as e:
+                    logger.warning(f"Failed to restore cursor position: {e}")
+                    self.source_buffer.place_cursor(self.source_buffer.get_end_iter())
+            else:
+                self.source_buffer.place_cursor(self.source_buffer.get_end_iter())
 
             # Check for external changes when editor gains focus
             if self.file_manager.currently_open_path:
