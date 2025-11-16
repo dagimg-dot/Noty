@@ -90,7 +90,7 @@ class NotyApplication(Adw.Application):
             self.win.connect("realize", lambda w: self._try_open_last_file())
 
         self.win.present()
-        if self.win.is_realized():
+        if self.win.get_realized():
             self._try_open_last_file()
 
     def on_about_action(self, *args):
