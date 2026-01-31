@@ -44,7 +44,7 @@ dev-release:
 release: bump
 	@echo "Committing version update..."
 	git add meson.build build-aux/flatpak/com.dagimg.noty.json
-	git commit -m "chore: bump version to v$(VERSION)"
+	git commit -m "chore: bump version to v$(VERSION)" --no-verify
 	git push
 	@echo "Creating and pushing tag v$(VERSION)..."
 	git tag v$(VERSION)
