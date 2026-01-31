@@ -41,6 +41,20 @@ dev-release:
 	@echo "Flatpak bundle created: dist/noty-dev.flatpak"
 	@$(MAKE) flatpak-install
 
+prod-release:
+	rm -rf /tmp/flatpak-build /tmp/flatpak-repo $(PWD)/dist
+	mkdir -p /tmp/flatpak-build /tmp/flatpak-repo $(PWD)/dist
+	cd /tmp/flatpak-build && flatpak-builder --repo=/tmp/flatpak-repo --force-clean flatpak_app $(PWD)/build-aux/flatpak/com.dagimg.noty.json
+	flatpak build-bundle /tmp/flatpak-repo $(PWD)/dist/noty.flatpak com.dagimg.noty --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+	@echo "Flatpak bundle created: dist/noty.flatpak"
+	@$(MAKE) flatpak-install-prod
+
+flatpak-install-prod:
+	flatpak install --user --or-update -y $(PWD)/dist/noty.flatpak
+
+flatpak-run-prod:
+	flatpak run com.dagimg.noty
+
 release: bump
 	@echo "Committing version update..."
 	git add meson.build build-aux/flatpak/com.dagimg.noty.json
