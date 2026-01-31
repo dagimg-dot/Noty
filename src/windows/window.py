@@ -5,6 +5,9 @@ gi.require_version("Adw", "1")
 gi.require_version("GtkSource", "5")
 
 from gi.repository import Adw, Gtk, Gdk, Gio, Pango, GtkSource  # type: ignore # noqa: E402
+
+GtkSource.init()
+
 from gettext import gettext as _  # noqa: E402
 from ..services.file_manager import FileManager  # noqa: E402
 from ..services.conf_manager import ConfManager  # noqa: E402
