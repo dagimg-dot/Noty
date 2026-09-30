@@ -31,3 +31,6 @@ debug = false
 [profile.release]
 debug = false
 strip = true
+lto = "thin"
+codegen-units = 1
+panic = "abort"
