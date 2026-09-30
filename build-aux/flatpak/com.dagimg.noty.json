@@ -1,55 +1,45 @@
 {
   "id": "com.dagimg.noty",
-  "runtime": "org.gnome.Platform",
-  "runtime-version": "49",
-  "sdk": "org.gnome.Sdk",
+  "runtime": "org.freedesktop.Platform",
+  "runtime-version": "25.08",
+  "sdk": "org.freedesktop.Sdk",
+  "sdk-extensions": ["org.freedesktop.Sdk.Extension.rust-stable"],
   "command": "noty",
   "finish-args": [
-    "--share=network",
     "--share=ipc",
     "--socket=fallback-x11",
     "--device=dri",
     "--socket=wayland",
     "--filesystem=xdg-documents"
   ],
-  "cleanup": [
-    "/include",
-    "/lib/pkgconfig",
-    "/man",
-    "/share/doc",
-    "/share/gtk-doc",
-    "/share/man",
-    "/share/pkgconfig",
-    "*.la",
-    "*.a"
-  ],
+  "build-options": {
+    "append-path": "/usr/lib/sdk/rust-stable/bin",
+    "env": {
+      "CARGO_HOME": "/run/build/noty/cargo"
+    }
+  },
   "modules": [
     {
-      "name": "blueprint-compiler",
-      "buildsystem": "meson",
-      "sources": [
-        {
-          "type": "git",
-          "url": "https://gitlab.gnome.org/jwestman/blueprint-compiler.git",
-          "tag": "v0.16.0"
-        }
-      ]
-    },
-    {
       "name": "noty",
-      "builddir": true,
-      "buildsystem": "meson",
+      "buildsystem": "simple",
+      "build-options": {
+        "build-args": ["--share=network"]
+      },
+      "build-commands": [
+        "cargo build --release --locked",
+        "install -Dm755 target/release/noty -t /app/bin",
+        "install -Dm644 data/com.dagimg.noty.desktop -t /app/share/applications",
+        "install -Dm644 data/com.dagimg.noty.metainfo.xml -t /app/share/metainfo",
+        "install -Dm644 data/icons/hicolor/scalable/apps/com.dagimg.noty.svg -t /app/share/icons/hicolor/scalable/apps",
+        "install -Dm644 data/icons/hicolor/symbolic/apps/com.dagimg.noty-symbolic.svg -t /app/share/icons/hicolor/symbolic/apps"
+      ],
       "sources": [
         {
           "type": "git",
           "url": "https://github.com/dagimg-dot/noty.git",
-          "tag": "v0.4.4"
+          "tag": "v0.5.0"
         }
-      ],
-      "config-opts": ["--libdir=lib"]
+      ]
     }
-  ],
-  "build-options": {
-    "env": {}
-  }
+  ]
 }

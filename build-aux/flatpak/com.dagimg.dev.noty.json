@@ -1,46 +1,47 @@
 {
   "id": "com.dagimg.dev.noty",
-  "runtime": "org.gnome.Platform",
-  "runtime-version": "49",
-  "sdk": "org.gnome.Sdk",
+  "runtime": "org.freedesktop.Platform",
+  "runtime-version": "25.08",
+  "sdk": "org.freedesktop.Sdk",
+  "sdk-extensions": ["org.freedesktop.Sdk.Extension.rust-stable"],
   "command": "noty",
   "finish-args": [
-    "--share=network",
     "--share=ipc",
     "--socket=fallback-x11",
     "--device=dri",
     "--socket=wayland",
     "--filesystem=xdg-documents"
   ],
-  "cleanup": [
-    "/include",
-    "/lib/pkgconfig",
-    "/man",
-    "/share/doc",
-    "/share/gtk-doc",
-    "/share/man",
-    "/share/pkgconfig",
-    "*.la",
-    "*.a"
-  ],
+  "build-options": {
+    "append-path": "/usr/lib/sdk/rust-stable/bin",
+    "env": {
+      "CARGO_HOME": "/run/build/noty/cargo",
+      "NOTY_APP_ID": "com.dagimg.dev.noty"
+    }
+  },
   "modules": [
     {
       "name": "noty",
-      "builddir": true,
-      "buildsystem": "meson",
+      "buildsystem": "simple",
+      "build-options": {
+        "build-args": ["--share=network"]
+      },
+      "build-commands": [
+        "cargo build --release --locked",
+        "install -Dm755 target/release/noty -t /app/bin",
+        "install -d /app/share/applications /app/share/metainfo",
+        "sed 's/com\\.dagimg\\.noty/com.dagimg.dev.noty/g' data/com.dagimg.noty.desktop > /app/share/applications/com.dagimg.dev.noty.desktop",
+        "sed 's/com\\.dagimg\\.noty/com.dagimg.dev.noty/g' data/com.dagimg.noty.metainfo.xml > /app/share/metainfo/com.dagimg.dev.noty.metainfo.xml",
+        "install -Dm644 data/icons/hicolor/scalable/apps/com.dagimg.dev.noty.svg -t /app/share/icons/hicolor/scalable/apps",
+        "install -Dm644 data/icons/hicolor/symbolic/apps/com.dagimg.dev.noty-symbolic.svg -t /app/share/icons/hicolor/symbolic/apps"
+      ],
       "sources": [
         {
           "type": "dir",
-          "path": "../../"
+          "path": "../../",
+          "skip": ["target", "dist", ".flatpak-builder", ".venv"]
         }
-      ],
-      "config-opts": [
-        "--libdir=lib",
-        "-Dapplication_id=com.dagimg.dev.noty"
       ]
     }
-  ],
-  "build-options": {
-    "env": {}
-  }
-} 
+  ]
+}

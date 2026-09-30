@@ -7,4 +7,4 @@ Type=Application
 Categories=Utility;
 Keywords=Note,TextEditor;
 StartupNotify=true
-DBusActivatable=true
+StartupWMClass=com.dagimg.noty

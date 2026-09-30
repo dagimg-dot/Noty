@@ -20,7 +20,6 @@
   <url type="bugtracker">https://github.com/dagimg-dot/noty/issues</url>
 
 
-  <translation type="gettext">noty</translation>
   <!-- All graphical applications having a desktop file must have this tag in the MetaInfo.
      If this is present, appstreamcli compose will pull icons, keywords and categories from the desktop
   file. -->
@@ -51,6 +50,18 @@
   </screenshots>
 
   <releases>
+    <release version="0.5.0" date="2026-09-30">
+      <url type="details">https://github.com/dagimg-dot/noty/releases/tag/v0.5.0</url>
+      <description translate="no">
+        <p>Noty is rewritten in Rust and now runs on Linux, macOS and Windows.</p>
+        <ul>
+          <li>Search, open and create notes from the title bar</li>
+          <li>Rename and delete notes from the keyboard</li>
+          <li>Adwaita, Catppuccin, Nord, Tokyo Night and Vesper themes built in</li>
+          <li>Custom themes from TOML files</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.2.1" date="2025-04-09">
       <url type="details">https://github.com/dagimg-dot/noty/releases/tag/v0.2.1</url>
       <description translate="no">
