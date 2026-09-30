@@ -1,22 +1,27 @@
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use std::time::{Duration, SystemTime};
 
 use gpui_kit::component::button::{Button, ButtonVariant, ButtonVariants as _};
 use gpui_kit::component::input::{Editor, EditorState, Input, InputEvent, InputState, TabSize};
+use gpui_kit::component::menu::{DropdownMenu as _, PopupMenu};
 use gpui_kit::component::notification::Notification;
-use gpui_kit::component::{ActiveTheme as _, Sizable as _, TitleBar, WindowExt as _};
+use gpui_kit::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, TitleBar, WindowExt as _,
+};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::*;
 
 use crate::actions::{
-    Confirm, ConfirmCreate, DeleteNote, Dismiss, FocusSearch, Quit, ReloadNote, RenameNote,
-    SaveNote, SelectNext, SelectPrev, ZoomIn, ZoomOut, ZoomReset,
+    Confirm, ConfirmCreate, DeleteNote, Dismiss, FocusSearch, FollowSystemAppearance, Quit,
+    ReloadNote, RenameNote, SaveNote, SelectNext, SelectPrev, SelectTheme, ToggleLineNumbers,
+    UseDarkAppearance, UseLightAppearance, ZoomIn, ZoomOut, ZoomReset,
 };
 use crate::appearance;
-use crate::config::{Config, MAX_FONT_SIZE, MIN_FONT_SIZE};
+use crate::config::{Appearance, Config, MAX_FONT_SIZE, MIN_FONT_SIZE};
 use crate::notes::{self, NoteStore, SaveOutcome};
 use crate::search::{Search, SearchEvent};
-use crate::theme::ThemeLibrary;
+use crate::theme::{ThemeLibrary, Variant};
 use crate::ui::{self, AppIcon};
 
 const AUTOSAVE_DELAY: Duration = Duration::from_millis(800);
@@ -35,6 +40,12 @@ struct OpenNote {
     name: SharedString,
     disk_modified: SystemTime,
     saved_text: String,
+}
+
+struct ThemeChoice {
+    id: SharedString,
+    name: SharedString,
+    variant: Variant,
 }
 
 struct Renaming {
@@ -605,6 +616,90 @@ impl Workspace {
         }
     }
 
+    fn showing_variant(&self, window: &Window) -> Variant {
+        match self.config.appearance() {
+            Appearance::Light => Variant::Light,
+            Appearance::Dark => Variant::Dark,
+            Appearance::System => match window.appearance() {
+                WindowAppearance::Dark | WindowAppearance::VibrantDark => Variant::Dark,
+                WindowAppearance::Light | WindowAppearance::VibrantLight => Variant::Light,
+            },
+        }
+    }
+
+    /// Uses the theme for its variant and, when the window shows the other
+    /// variant, switches the appearance so the choice is visible right away.
+    fn select_theme(&mut self, action: &SelectTheme, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(variant) = self.themes.get(&action.id).map(|theme| theme.variant()) else {
+            return;
+        };
+        self.config.set_theme_id(variant, &action.id);
+        if self.showing_variant(window) != variant {
+            self.config.set_appearance(match variant {
+                Variant::Light => Appearance::Light,
+                Variant::Dark => Appearance::Dark,
+            });
+        }
+        self.settings_changed(window, cx);
+    }
+
+    fn set_appearance(
+        &mut self,
+        appearance: Appearance,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.config.set_appearance(appearance);
+        self.settings_changed(window, cx);
+    }
+
+    fn follow_system_appearance(
+        &mut self,
+        _: &FollowSystemAppearance,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.set_appearance(Appearance::System, window, cx);
+    }
+
+    fn use_light_appearance(
+        &mut self,
+        _: &UseLightAppearance,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.set_appearance(Appearance::Light, window, cx);
+    }
+
+    fn use_dark_appearance(
+        &mut self,
+        _: &UseDarkAppearance,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.set_appearance(Appearance::Dark, window, cx);
+    }
+
+    fn settings_changed(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.persist_config();
+        appearance::apply(&self.themes, &self.config, Some(window), cx);
+        cx.notify();
+    }
+
+    fn toggle_line_numbers(
+        &mut self,
+        _: &ToggleLineNumbers,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let show = !self.config.show_line_numbers();
+        self.config.set_show_line_numbers(show);
+        self.editor
+            .update(cx, |editor, cx| editor.set_line_number(show, window, cx));
+        self.persist_config();
+        cx.notify();
+    }
+
     fn zoom(&mut self, points: f32, cx: &mut Context<Self>) {
         self.font_size = points.clamp(MIN_FONT_SIZE, MAX_FONT_SIZE);
         self.config.set_font_size(self.font_size);
@@ -640,6 +735,7 @@ impl Workspace {
         window: &Window,
         cx: &mut Context<Self>,
     ) -> impl IntoElement + use<> {
+        let menu = self.render_menu_button(cx);
         let theme = cx.theme();
         let this = cx.entity().downgrade();
         let show_close =
@@ -717,8 +813,82 @@ impl Workspace {
                 .items_center()
                 .pr(px(6.))
                 .when(show_close, |bar| bar.child(close))
-                .child(search_field),
+                .child(search_field)
+                .child(menu),
         )
+    }
+
+    fn render_menu_button(&self, cx: &mut Context<Self>) -> impl IntoElement + use<> {
+        let has_note = self.current.is_some();
+        let line_numbers = self.config.show_line_numbers();
+        let appearance = self.config.appearance();
+        let light = SharedString::from(self.config.theme_id(Variant::Light));
+        let dark = SharedString::from(self.config.theme_id(Variant::Dark));
+        let themes: Rc<Vec<ThemeChoice>> = Rc::new(
+            self.themes
+                .themes()
+                .iter()
+                .map(|theme| ThemeChoice {
+                    id: theme.id().to_owned().into(),
+                    name: theme.name().to_owned().into(),
+                    variant: theme.variant(),
+                })
+                .collect(),
+        );
+
+        div()
+            .flex_none()
+            .on_mouse_down(
+                MouseButton::Left,
+                cx.listener(|this, _, window, cx| {
+                    cx.stop_propagation();
+                    this.focus_editor(window, cx);
+                }),
+            )
+            .child(
+                Button::new("main-menu")
+                    .ghost()
+                    .small()
+                    .icon(Icon::new(IconName::Ellipsis))
+                    .tooltip("Main Menu")
+                    .dropdown_menu_with_anchor(Anchor::TopRight, move |menu, window, cx| {
+                        let menu = if has_note {
+                            menu.menu("Rename Note…", Box::new(RenameNote))
+                                .menu("Delete Note…", Box::new(DeleteNote))
+                                .separator()
+                        } else {
+                            menu
+                        };
+                        let (themes, light, dark) = (themes.clone(), light.clone(), dark.clone());
+                        menu.submenu("Theme", window, cx, move |menu, _, _| {
+                            theme_menu(menu, &themes, &light, &dark)
+                        })
+                        .submenu("Appearance", window, cx, move |menu, _, _| {
+                            menu.menu_with_check(
+                                "Follow System",
+                                appearance == Appearance::System,
+                                Box::new(FollowSystemAppearance),
+                            )
+                            .menu_with_check(
+                                "Light",
+                                appearance == Appearance::Light,
+                                Box::new(UseLightAppearance),
+                            )
+                            .menu_with_check(
+                                "Dark",
+                                appearance == Appearance::Dark,
+                                Box::new(UseDarkAppearance),
+                            )
+                        })
+                        .menu_with_check("Line Numbers", line_numbers, Box::new(ToggleLineNumbers))
+                        .separator()
+                        .menu("Bigger Text", Box::new(ZoomIn))
+                        .menu("Smaller Text", Box::new(ZoomOut))
+                        .menu("Actual Size", Box::new(ZoomReset))
+                        .separator()
+                        .menu("Quit", Box::new(Quit))
+                    }),
+            )
     }
 
     fn render_editor(&self, window: &Window, cx: &mut Context<Self>) -> impl IntoElement + use<> {
@@ -842,6 +1012,30 @@ impl Workspace {
     }
 }
 
+fn theme_menu(menu: PopupMenu, themes: &[ThemeChoice], light: &str, dark: &str) -> PopupMenu {
+    [
+        (Variant::Light, "Light", light),
+        (Variant::Dark, "Dark", dark),
+    ]
+    .into_iter()
+    .enumerate()
+    .fold(menu, |menu, (ix, (variant, label, selected))| {
+        let menu = if ix > 0 { menu.separator() } else { menu };
+        themes.iter().filter(|theme| theme.variant == variant).fold(
+            menu.label(label),
+            |menu, theme| {
+                menu.menu_with_check(
+                    theme.name.clone(),
+                    theme.id == selected,
+                    Box::new(SelectTheme {
+                        id: theme.id.clone(),
+                    }),
+                )
+            },
+        )
+    })
+}
+
 impl Render for Workspace {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.theme();
@@ -867,6 +1061,11 @@ impl Render for Workspace {
             .on_action(cx.listener(Self::reload_action))
             .on_action(cx.listener(Self::rename_action))
             .on_action(cx.listener(Self::delete_action))
+            .on_action(cx.listener(Self::select_theme))
+            .on_action(cx.listener(Self::follow_system_appearance))
+            .on_action(cx.listener(Self::use_light_appearance))
+            .on_action(cx.listener(Self::use_dark_appearance))
+            .on_action(cx.listener(Self::toggle_line_numbers))
             .on_action(cx.listener(Self::zoom_in))
             .on_action(cx.listener(Self::zoom_out))
             .on_action(cx.listener(Self::zoom_reset))

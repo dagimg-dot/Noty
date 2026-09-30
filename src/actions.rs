@@ -1,3 +1,4 @@
+use gpui_kit as gpui;
 use gpui_kit::*;
 
 gpui_kit::actions!(
@@ -16,9 +17,19 @@ gpui_kit::actions!(
         ZoomIn,
         ZoomOut,
         ZoomReset,
+        FollowSystemAppearance,
+        UseLightAppearance,
+        UseDarkAppearance,
+        ToggleLineNumbers,
         Quit,
     ]
 );
+
+#[derive(Clone, Debug, PartialEq, gpui::Action)]
+#[action(namespace = noty, no_json)]
+pub struct SelectTheme {
+    pub id: SharedString,
+}
 
 const SEARCH_FIELD: Option<&str> = Some("NotySearch > Input");
 const EDITOR: Option<&str> = Some("NotyEditor > Input");
@@ -46,6 +57,7 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("secondary-+", ZoomIn, None),
         KeyBinding::new("secondary--", ZoomOut, None),
         KeyBinding::new("secondary-0", ZoomReset, None),
+        KeyBinding::new("alt-l", ToggleLineNumbers, None),
         KeyBinding::new("secondary-q", Quit, None),
     ]);
 }
