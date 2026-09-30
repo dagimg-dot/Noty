@@ -2,6 +2,7 @@
 name = "noty"
 version = "0.5.0"
 edition = "2024"
+rust-version = "1.92"
 description = "A minimal keyboard driven note taking application"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/dagimg-dot/noty"
