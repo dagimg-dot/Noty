@@ -3,7 +3,9 @@ use std::rc::Rc;
 use std::time::{Duration, SystemTime};
 
 use gpui_kit::component::button::{Button, ButtonVariant, ButtonVariants as _};
-use gpui_kit::component::input::{Editor, EditorState, Input, InputEvent, InputState, TabSize};
+use gpui_kit::component::input::{
+    Editor, EditorState, Input, InputEvent, InputState, Rope, TabSize,
+};
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenu};
 use gpui_kit::component::notification::Notification;
 use gpui_kit::component::{
@@ -26,6 +28,7 @@ use crate::theme::{ThemeLibrary, Variant};
 use crate::ui::{self, AppIcon, PRIMARY_KEY};
 
 const AUTOSAVE_DELAY: Duration = Duration::from_millis(800);
+const WORD_COUNT_DELAY: Duration = Duration::from_millis(250);
 const TEXT_COLUMN: f32 = 760.;
 const HOMEPAGE: &str = "https://github.com/dagimg-dot/noty";
 
@@ -41,7 +44,7 @@ struct OpenNote {
     path: PathBuf,
     name: SharedString,
     disk_modified: SystemTime,
-    saved_text: String,
+    saved: Rope,
 }
 
 struct ThemeChoice {
@@ -69,6 +72,7 @@ pub struct Workspace {
     font_size: f32,
     focus_handle: FocusHandle,
     autosave: Option<Task<()>>,
+    recount: Option<Task<()>>,
     renaming: Option<Renaming>,
     _subscriptions: Vec<Subscription>,
 }
@@ -134,6 +138,7 @@ impl Workspace {
             font_size,
             focus_handle: cx.focus_handle(),
             autosave: None,
+            recount: None,
             renaming: None,
             _subscriptions: subscriptions,
         }
@@ -269,10 +274,16 @@ impl Workspace {
         let Some(current) = &self.current else {
             return;
         };
-        let text = self.editor.read(cx).value();
-        self.word_count = ui::word_count(&text);
+        self.recount = Some(cx.spawn(async move |this, cx| {
+            cx.background_executor().timer(WORD_COUNT_DELAY).await;
+            this.update(cx, |this, cx| {
+                this.word_count = ui::word_count(this.editor.read(cx).text().chunks());
+                cx.notify();
+            })
+            .ok();
+        }));
         if self.save_state != SaveState::Conflict {
-            let dirty = text.as_ref() != current.saved_text.as_str();
+            let dirty = self.editor.read(cx).text() != &current.saved;
             self.save_state = if dirty {
                 SaveState::Unsaved
             } else {
@@ -297,15 +308,15 @@ impl Workspace {
         let Some(current) = self.current.as_mut() else {
             return;
         };
-        let text = self.editor.read(cx).value().to_string();
-        if !force && (text == current.saved_text || self.save_state == SaveState::Conflict) {
+        let content = self.editor.read(cx).text().clone();
+        if !force && (content == current.saved || self.save_state == SaveState::Conflict) {
             return;
         }
         let expected = (!force).then_some(current.disk_modified);
-        match notes::save_note(&current.path, &text, expected) {
+        match notes::save_note(&current.path, &String::from(&content), expected) {
             Ok(SaveOutcome::Saved(modified)) => {
                 current.disk_modified = modified;
-                current.saved_text = text;
+                current.saved = content;
                 self.save_state = SaveState::Saved;
             }
             Ok(SaveOutcome::Conflict) => {
@@ -339,7 +350,7 @@ impl Workspace {
         if on_disk == Some(current.disk_modified) {
             return;
         }
-        let dirty = self.editor.read(cx).value().as_ref() != current.saved_text.as_str();
+        let dirty = self.editor.read(cx).text() != &current.saved;
         if on_disk.is_some() && !dirty {
             let (name, path) = (current.name.clone(), current.path.clone());
             self.load(&path, false, window, cx);
@@ -405,16 +416,17 @@ impl Workspace {
         };
         let name = SharedString::from(notes::note_name(path));
         self.autosave = None;
-        self.word_count = ui::word_count(&text);
+        self.recount = None;
+        self.word_count = ui::word_count([text.as_str()]);
         self.save_state = SaveState::Saved;
+        self.editor
+            .update(cx, |editor, cx| editor.set_value(text, window, cx));
         self.current = Some(OpenNote {
             path: path.to_path_buf(),
             name: name.clone(),
             disk_modified: modified,
-            saved_text: text.clone(),
+            saved: self.editor.read(cx).text().clone(),
         });
-        self.editor
-            .update(cx, |editor, cx| editor.set_value(text, window, cx));
         if !self.search_open {
             let shown = Some(name.clone());
             self.search

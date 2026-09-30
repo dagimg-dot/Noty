@@ -135,8 +135,17 @@ pub fn display_path(path: &Path) -> String {
     }
 }
 
-pub fn word_count(text: &str) -> usize {
-    text.split_whitespace().count()
+pub fn word_count<'a>(chunks: impl IntoIterator<Item = &'a str>) -> usize {
+    let mut count = 0;
+    let mut in_word = false;
+    for c in chunks.into_iter().flat_map(str::chars) {
+        let word_char = !c.is_whitespace();
+        if word_char && !in_word {
+            count += 1;
+        }
+        in_word = word_char;
+    }
+    count
 }
 
 #[cfg(test)]
@@ -160,8 +169,14 @@ mod tests {
 
     #[test]
     fn words_are_whitespace_separated() {
-        assert_eq!(word_count("# Title\n\nsome *notes* here"), 5);
-        assert_eq!(word_count("   "), 0);
+        assert_eq!(word_count(["# Title\n\nsome *notes* here"]), 5);
+        assert_eq!(word_count(["   "]), 0);
+    }
+
+    #[test]
+    fn words_split_across_chunks_count_once() {
+        assert_eq!(word_count(["hel", "lo wo", "rld", " "]), 2);
+        assert_eq!(word_count(["one ", " two"]), 2);
     }
 
     #[test]
