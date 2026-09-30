@@ -4,6 +4,7 @@ mod appearance;
 pub mod config;
 pub mod fuzzy;
 pub mod notes;
+mod saver;
 #[cfg(debug_assertions)]
 mod script;
 mod search;

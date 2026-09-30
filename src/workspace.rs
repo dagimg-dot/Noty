@@ -23,6 +23,7 @@ use crate::actions::{
 use crate::appearance;
 use crate::config::{Appearance, Config, MAX_FONT_SIZE, MIN_FONT_SIZE};
 use crate::notes::{self, NoteStore, SaveOutcome};
+use crate::saver::{FinishedSave, SaveJob, Saver};
 use crate::search::{Search, SearchEvent};
 use crate::theme::{ThemeLibrary, Variant};
 use crate::ui::{self, AppIcon, PRIMARY_KEY};
@@ -72,6 +73,7 @@ pub struct Workspace {
     font_size: f32,
     focus_handle: FocusHandle,
     autosave: Option<Task<()>>,
+    saver: Saver,
     recount: Option<Task<()>>,
     renaming: Option<Renaming>,
     _subscriptions: Vec<Subscription>,
@@ -109,7 +111,7 @@ impl Workspace {
                 if window.is_window_active() {
                     this.check_disk(window, cx);
                 } else {
-                    this.save(false, window, cx);
+                    this.save_in_background(window, cx);
                 }
             }),
             cx.observe_window_appearance(window, |this, window, cx| {
@@ -138,6 +140,7 @@ impl Workspace {
             font_size,
             focus_handle: cx.focus_handle(),
             autosave: None,
+            saver: Saver::default(),
             recount: None,
             renaming: None,
             _subscriptions: subscriptions,
@@ -178,7 +181,7 @@ impl Workspace {
     ) {
         match event {
             InputEvent::Change => self.on_edit(window, cx),
-            InputEvent::Blur => self.save(false, window, cx),
+            InputEvent::Blur => self.save_in_background(window, cx),
             _ => {}
         }
     }
@@ -228,7 +231,7 @@ impl Workspace {
         if self.search_open {
             return;
         }
-        self.save(false, window, cx);
+        self.save_in_background(window, cx);
         self.rescan(window, cx);
         let notes = self.store.notes().to_vec();
         self.search
@@ -290,34 +293,97 @@ impl Workspace {
                 SaveState::Saved
             };
             if dirty {
-                self.autosave = Some(cx.spawn_in(window, async move |this, cx| {
-                    cx.background_executor().timer(AUTOSAVE_DELAY).await;
-                    this.update_in(cx, |this, window, cx| this.save(false, window, cx))
-                        .ok();
-                }));
+                self.schedule_autosave(window, cx);
             }
         }
         cx.notify();
     }
 
-    /// Writes the open note when it has unsaved edits. With `force`, a note
-    /// that changed on disk is overwritten, which is how the user keeps
-    /// their version of a conflict.
+    fn schedule_autosave(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.autosave = Some(cx.spawn_in(window, async move |this, cx| {
+            cx.background_executor().timer(AUTOSAVE_DELAY).await;
+            this.update_in(cx, |this, window, cx| this.save_in_background(window, cx))
+                .ok();
+        }));
+    }
+
+    /// Writes the open note right away, once any save running in the
+    /// background has finished. With `force`, a note that changed on disk is
+    /// overwritten, which is how the user keeps their version of a conflict.
     fn save(&mut self, force: bool, window: &mut Window, cx: &mut Context<Self>) {
         self.autosave = None;
-        let Some(current) = self.current.as_mut() else {
+        self.finish_saving(window, cx);
+        if let Some(job) = self.save_job(force, cx) {
+            self.apply_save(job.run(), window, cx);
+        }
+    }
+
+    fn save_in_background(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.autosave = None;
+        if let Some(finished) = self.saver.take() {
+            self.apply_save(finished, window, cx);
+        }
+        let Some(job) = self.save_job(false, cx) else {
             return;
         };
-        let content = self.editor.read(cx).text().clone();
-        if !force && (content == current.saved || self.save_state == SaveState::Conflict) {
+        if !self.saver.try_begin() {
             return;
         }
-        let expected = (!force).then_some(current.disk_modified);
-        match notes::save_note(&current.path, &String::from(&content), expected) {
+        let saver = self.saver.clone();
+        let io = cx.background_spawn(async move { saver.run(job) });
+        cx.spawn_in(window, async move |this, cx| {
+            io.await;
+            this.update_in(cx, |this, window, cx| this.collect_save(window, cx))
+                .ok();
+        })
+        .detach();
+    }
+
+    fn save_job(&self, force: bool, cx: &App) -> Option<SaveJob> {
+        let current = self.current.as_ref()?;
+        let content = self.editor.read(cx).text().clone();
+        if !force && (content == current.saved || self.save_state == SaveState::Conflict) {
+            return None;
+        }
+        Some(SaveJob {
+            path: current.path.clone(),
+            content,
+            expected_modified: (!force).then_some(current.disk_modified),
+        })
+    }
+
+    fn finish_saving(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(finished) = self.saver.wait() {
+            self.apply_save(finished, window, cx);
+        }
+    }
+
+    fn collect_save(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(finished) = self.saver.take() {
+            self.apply_save(finished, window, cx);
+        }
+        if self.save_state == SaveState::Unsaved && self.autosave.is_none() {
+            self.schedule_autosave(window, cx);
+        }
+    }
+
+    fn apply_save(&mut self, finished: FinishedSave, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(current) = self
+            .current
+            .as_mut()
+            .filter(|note| note.path == finished.path)
+        else {
+            return;
+        };
+        match finished.outcome {
             Ok(SaveOutcome::Saved(modified)) => {
                 current.disk_modified = modified;
-                current.saved = content;
-                self.save_state = SaveState::Saved;
+                current.saved = finished.content;
+                self.save_state = if self.editor.read(cx).text() == &current.saved {
+                    SaveState::Saved
+                } else {
+                    SaveState::Unsaved
+                };
             }
             Ok(SaveOutcome::Conflict) => {
                 self.save_state = SaveState::Conflict;
@@ -343,6 +409,7 @@ impl Workspace {
     }
 
     fn check_disk(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.finish_saving(window, cx);
         let Some(current) = &self.current else {
             return;
         };
@@ -372,6 +439,7 @@ impl Workspace {
     }
 
     fn reload_action(&mut self, _: &ReloadNote, window: &mut Window, cx: &mut Context<Self>) {
+        self.finish_saving(window, cx);
         if let Some(path) = self.current.as_ref().map(|note| note.path.clone()) {
             self.load(&path, false, window, cx);
         }
@@ -602,6 +670,7 @@ impl Workspace {
     }
 
     fn delete_note(&mut self, path: &Path, window: &mut Window, cx: &mut Context<Self>) {
+        self.finish_saving(window, cx);
         let name = notes::note_name(path);
         if self.current.as_ref().is_some_and(|note| note.path == path) {
             self.autosave = None;
