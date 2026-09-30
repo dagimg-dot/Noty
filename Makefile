@@ -4,7 +4,7 @@ NOTY_VERSION = $(shell sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml)
 DIST_NAME = noty-$(NOTY_VERSION)-linux-$(shell uname -m)
 STAGE = target/dist/$(DIST_NAME)
 
-.PHONY: run build test lint install uninstall dist clean flatpak-install flatpak-run bump dev-release prod-release flatpak-install-prod flatpak-run-prod release
+.PHONY: run build test lint install uninstall dist clean bump release
 
 run:
 	NOTY_APP_ID=com.dagimg.dev.noty cargo run
@@ -44,12 +44,6 @@ dist: build
 clean:
 	cargo clean
 
-flatpak-install:
-	flatpak install --user --or-update -y $(PWD)/dist/noty-dev.flatpak
-
-flatpak-run:
-	flatpak run com.dagimg.dev.noty
-
 bump:
 	@if [ -z "$(VERSION)" ]; then \
 		echo "Error: VERSION parameter is required. Use 'make release VERSION=x.y.z'"; \
@@ -58,34 +52,11 @@ bump:
 	echo "Updating version to $(VERSION)..."
 	sed -i '0,/^version = ".*"/s//version = "$(VERSION)"/' Cargo.toml
 	cargo update --workspace --offline
-	sed -i "/noty\.git/!b;n;s/\"tag\": \"v[0-9]*\.[0-9]*\.[0-9]*\"/\"tag\": \"v$(VERSION)\"/" build-aux/flatpak/com.dagimg.noty.json
 	echo "Noty version updated to $(VERSION)"
-
-dev-release:
-	rm -rf /tmp/flatpak-build /tmp/flatpak-repo $(PWD)/dist
-	mkdir -p /tmp/flatpak-build /tmp/flatpak-repo $(PWD)/dist
-	cd /tmp/flatpak-build && flatpak-builder --user --install-deps-from=flathub --repo=/tmp/flatpak-repo --force-clean flatpak_app $(PWD)/build-aux/flatpak/com.dagimg.dev.noty.json
-	flatpak build-bundle /tmp/flatpak-repo $(PWD)/dist/noty-dev.flatpak com.dagimg.dev.noty --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
-	@echo "Flatpak bundle created: dist/noty-dev.flatpak"
-	@$(MAKE) flatpak-install
-
-prod-release:
-	rm -rf /tmp/flatpak-build /tmp/flatpak-repo $(PWD)/dist
-	mkdir -p /tmp/flatpak-build /tmp/flatpak-repo $(PWD)/dist
-	cd /tmp/flatpak-build && flatpak-builder --user --install-deps-from=flathub --repo=/tmp/flatpak-repo --force-clean flatpak_app $(PWD)/build-aux/flatpak/com.dagimg.noty.json
-	flatpak build-bundle /tmp/flatpak-repo $(PWD)/dist/noty.flatpak com.dagimg.noty --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
-	@echo "Flatpak bundle created: dist/noty.flatpak"
-	@$(MAKE) flatpak-install-prod
-
-flatpak-install-prod:
-	flatpak install --user --or-update -y $(PWD)/dist/noty.flatpak
-
-flatpak-run-prod:
-	flatpak run com.dagimg.noty
 
 release: bump
 	@echo "Committing version update..."
-	git add Cargo.toml Cargo.lock build-aux/flatpak/com.dagimg.noty.json
+	git add Cargo.toml Cargo.lock
 	git diff --cached --quiet || git commit -m "chore: bump version to v$(VERSION)" --no-verify
 	git push
 	@echo "Creating and pushing tag v$(VERSION)..."
