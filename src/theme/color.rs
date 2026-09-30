@@ -172,11 +172,56 @@ impl Color {
         let offset = value - chroma;
         Self::rgba(r + offset, g + offset, b + offset, alpha)
     }
+
+    /// `preferred` when it reads well on this color, otherwise black or
+    /// white, whichever contrasts more.
+    pub fn readable_text(self, preferred: Self) -> Self {
+        if self.contrast(preferred) >= 3. {
+            preferred
+        } else if self.contrast(Self::WHITE) >= self.contrast(Self::BLACK) {
+            Self::WHITE
+        } else {
+            Self::BLACK
+        }
+    }
+
+    fn contrast(self, other: Self) -> f32 {
+        let (lighter, darker) = {
+            let (a, b) = (self.luminance(), other.luminance());
+            (a.max(b), a.min(b))
+        };
+        (lighter + 0.05) / (darker + 0.05)
+    }
+
+    fn luminance(self) -> f32 {
+        let linear = |channel: f32| {
+            if channel <= 0.04045 {
+                channel / 12.92
+            } else {
+                ((channel + 0.055) / 1.055).powf(2.4)
+            }
+        };
+        0.2126 * linear(self.r) + 0.7152 * linear(self.g) + 0.0722 * linear(self.b)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn readable_text_keeps_good_choices_and_fixes_bad_ones() {
+        let blue = Color::parse("#3584e4").unwrap();
+        assert_eq!(blue.readable_text(Color::WHITE), Color::WHITE);
+        assert_eq!(blue.readable_text(blue), Color::BLACK);
+        let peach = Color::parse("#ffc799").unwrap();
+        assert_eq!(
+            peach
+                .readable_text(Color::parse("#101010").unwrap())
+                .to_hex(),
+            "#101010ff"
+        );
+    }
 
     fn hex(text: &str) -> String {
         Color::parse(text).unwrap().to_hex()
