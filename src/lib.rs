@@ -4,6 +4,8 @@ mod appearance;
 pub mod config;
 pub mod fuzzy;
 pub mod notes;
+#[cfg(debug_assertions)]
+mod script;
 pub mod theme;
 mod ui;
 mod workspace;

@@ -94,7 +94,13 @@ pub fn run() {
                 cx.new(|cx| Workspace::new(config, themes, store, window, cx))
             });
             match opened {
-                Ok(_) => cx.activate(true),
+                Ok((window, _)) => {
+                    cx.activate(true);
+                    #[cfg(debug_assertions)]
+                    crate::script::run_from_env(window, cx);
+                    #[cfg(not(debug_assertions))]
+                    let _ = window;
+                }
                 Err(error) => {
                     eprintln!("noty: could not open a window: {error:#}");
                     cx.quit();
