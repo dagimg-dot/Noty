@@ -22,6 +22,7 @@ gpui_kit::actions!(
         UseDarkAppearance,
         ToggleLineNumbers,
         ToggleCloseButton,
+        ShowShortcuts,
         Quit,
     ]
 );
@@ -59,6 +60,7 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("secondary--", ZoomOut, None),
         KeyBinding::new("secondary-0", ZoomReset, None),
         KeyBinding::new("alt-l", ToggleLineNumbers, None),
+        KeyBinding::new("secondary-?", ShowShortcuts, None),
         KeyBinding::new("secondary-q", Quit, None),
     ]);
 }

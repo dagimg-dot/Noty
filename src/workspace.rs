@@ -14,15 +14,16 @@ use gpui_kit::*;
 
 use crate::actions::{
     Confirm, ConfirmCreate, DeleteNote, Dismiss, FocusSearch, FollowSystemAppearance, Quit,
-    ReloadNote, RenameNote, SaveNote, SelectNext, SelectPrev, SelectTheme, ToggleCloseButton,
-    ToggleLineNumbers, UseDarkAppearance, UseLightAppearance, ZoomIn, ZoomOut, ZoomReset,
+    ReloadNote, RenameNote, SaveNote, SelectNext, SelectPrev, SelectTheme, ShowShortcuts,
+    ToggleCloseButton, ToggleLineNumbers, UseDarkAppearance, UseLightAppearance, ZoomIn, ZoomOut,
+    ZoomReset,
 };
 use crate::appearance;
 use crate::config::{Appearance, Config, MAX_FONT_SIZE, MIN_FONT_SIZE};
 use crate::notes::{self, NoteStore, SaveOutcome};
 use crate::search::{Search, SearchEvent};
 use crate::theme::{ThemeLibrary, Variant};
-use crate::ui::{self, AppIcon};
+use crate::ui::{self, AppIcon, PRIMARY_KEY};
 
 const AUTOSAVE_DELAY: Duration = Duration::from_millis(800);
 const TEXT_COLUMN: f32 = 760.;
@@ -712,6 +713,15 @@ impl Workspace {
         cx.notify();
     }
 
+    fn show_shortcuts(&mut self, _: &ShowShortcuts, window: &mut Window, cx: &mut Context<Self>) {
+        window.open_dialog(cx, |dialog, _, cx| {
+            dialog
+                .title("Keyboard Shortcuts")
+                .w(px(460.))
+                .child(shortcut_list(cx))
+        });
+    }
+
     fn zoom(&mut self, points: f32, cx: &mut Context<Self>) {
         self.font_size = points.clamp(MIN_FONT_SIZE, MAX_FONT_SIZE);
         self.config.set_font_size(self.font_size);
@@ -901,6 +911,7 @@ impl Workspace {
                         .menu("Smaller Text", Box::new(ZoomOut))
                         .menu("Actual Size", Box::new(ZoomReset))
                         .separator()
+                        .menu("Keyboard Shortcuts", Box::new(ShowShortcuts))
                         .menu("Quit", Box::new(Quit))
                     }),
             )
@@ -964,7 +975,7 @@ impl Workspace {
                     .flex_col()
                     .gap(px(9.))
                     .child(ui::shortcut_hint_groups(
-                        &[&["Ctrl", "P"], &["Alt", "S"]],
+                        &[&[PRIMARY_KEY, "P"], &["Alt", "S"]],
                         "Search or create",
                         cx,
                     ))
@@ -1051,6 +1062,62 @@ fn theme_menu(menu: PopupMenu, themes: &[ThemeChoice], light: &str, dark: &str) 
     })
 }
 
+fn shortcut_list(cx: &App) -> Div {
+    const SHORTCUTS: &[(&[&[&str]], &str)] = &[
+        (
+            &[&[PRIMARY_KEY, "P"], &["Alt", "S"], &["Esc"]],
+            "Search notes",
+        ),
+        (&[&["↑", "↓"], &["Ctrl", "J", "K"]], "Move through the list"),
+        (&[&["↵"]], "Open, or create a new note"),
+        (&[&["⇧", "↵"]], "Create exactly what you typed"),
+        (&[&["F2"], &["Ctrl", "R"]], "Rename note"),
+        (&[&["Delete"], &["⇧", "Delete"]], "Delete note"),
+        (&[&[PRIMARY_KEY, "S"]], "Save now, or keep your version"),
+        (&[&[PRIMARY_KEY, "⇧", "R"]], "Reload from disk"),
+        (
+            &[
+                &[PRIMARY_KEY, "="],
+                &[PRIMARY_KEY, "-"],
+                &[PRIMARY_KEY, "0"],
+            ],
+            "Text size",
+        ),
+        (&[&["Alt", "L"]], "Line numbers"),
+        (&[&[PRIMARY_KEY, "Q"]], "Quit"),
+    ];
+    let theme = cx.theme();
+    let rows = SHORTCUTS.iter().map(|(groups, label)| {
+        let keycaps = groups.iter().enumerate().flat_map(|(ix, keys)| {
+            let separator = (ix > 0).then(|| {
+                div()
+                    .px(px(2.))
+                    .text_size(px(11.))
+                    .text_color(theme.muted_foreground)
+                    .child("/")
+                    .into_any_element()
+            });
+            separator
+                .into_iter()
+                .chain(keys.iter().map(|key| ui::kbd(*key, cx).into_any_element()))
+                .collect::<Vec<_>>()
+        });
+        div()
+            .flex()
+            .items_center()
+            .justify_between()
+            .gap(px(16.))
+            .child(div().text_size(px(13.)).child(*label))
+            .child(div().flex().items_center().gap(px(4.)).children(keycaps))
+    });
+    div()
+        .flex()
+        .flex_col()
+        .gap(px(10.))
+        .pb(px(6.))
+        .children(rows)
+}
+
 impl Render for Workspace {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.theme();
@@ -1082,6 +1149,7 @@ impl Render for Workspace {
             .on_action(cx.listener(Self::use_dark_appearance))
             .on_action(cx.listener(Self::toggle_line_numbers))
             .on_action(cx.listener(Self::toggle_close_button))
+            .on_action(cx.listener(Self::show_shortcuts))
             .on_action(cx.listener(Self::zoom_in))
             .on_action(cx.listener(Self::zoom_out))
             .on_action(cx.listener(Self::zoom_reset))

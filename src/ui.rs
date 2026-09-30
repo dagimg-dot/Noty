@@ -6,6 +6,12 @@ use gpui_kit::*;
 
 use crate::config::home_dir;
 
+pub const PRIMARY_KEY: &str = if cfg!(target_os = "macos") {
+    "⌘"
+} else {
+    "Ctrl"
+};
+
 #[derive(Debug, Clone, Copy)]
 pub enum AppIcon {
     Close,
