@@ -1,7 +1,10 @@
 APP_ID = com.dagimg.noty
 PREFIX ?= $(HOME)/.local
+NOTY_VERSION = $(shell sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml)
+DIST_NAME = noty-$(NOTY_VERSION)-linux-$(shell uname -m)
+STAGE = target/dist/$(DIST_NAME)
 
-.PHONY: run build test lint install uninstall clean flatpak-install flatpak-run bump dev-release prod-release flatpak-install-prod flatpak-run-prod release
+.PHONY: run build test lint install uninstall dist clean flatpak-install flatpak-run bump dev-release prod-release flatpak-install-prod flatpak-run-prod release
 
 run:
 	NOTY_APP_ID=com.dagimg.dev.noty cargo run
@@ -29,6 +32,14 @@ uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/share/metainfo/$(APP_ID).metainfo.xml
 	rm -f $(DESTDIR)$(PREFIX)/share/icons/hicolor/scalable/apps/$(APP_ID).svg
 	rm -f $(DESTDIR)$(PREFIX)/share/icons/hicolor/symbolic/apps/$(APP_ID)-symbolic.svg
+
+dist: build
+	rm -rf $(STAGE)
+	$(MAKE) install PREFIX=$(CURDIR)/$(STAGE)
+	install -Dm644 README.md COPYING -t $(STAGE)/share/doc/noty
+	mkdir -p dist
+	tar -C target/dist --owner=0 --group=0 -czf dist/$(DIST_NAME).tar.gz $(DIST_NAME)
+	install -Dm755 target/release/noty dist/$(DIST_NAME)
 
 clean:
 	cargo clean
