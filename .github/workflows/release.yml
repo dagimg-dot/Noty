@@ -24,7 +24,7 @@ jobs:
           sudo apt-get install -y libfontconfig-dev libfreetype-dev libxcb1-dev libxkbcommon-dev libxkbcommon-x11-dev
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-      - name: Build binary and tarball
+      - name: Build tarball
         run: make dist
       - name: Upload build
         uses: actions/upload-artifact@v4

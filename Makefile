@@ -39,7 +39,6 @@ dist: build
 	install -Dm644 README.md COPYING -t $(STAGE)/share/doc/noty
 	mkdir -p dist
 	tar -C target/dist --owner=0 --group=0 -czf dist/$(DIST_NAME).tar.gz $(DIST_NAME)
-	install -Dm755 target/release/noty dist/$(DIST_NAME)
 
 clean:
 	cargo clean
