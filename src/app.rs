@@ -104,11 +104,8 @@ pub fn run() {
                     cx.activate(true);
                     #[cfg(unix)]
                     if let Some(listener) = listener {
-                        crate::instance::serve(listener, cx, move |_, cx| {
-                            cx.activate(true);
-                            window
-                                .update(cx, |_, window, _| window.activate_window())
-                                .ok();
+                        crate::instance::serve(listener, cx, move |token, cx| {
+                            crate::activation::raise(window, token, cx)
                         });
                     }
                     #[cfg(debug_assertions)]

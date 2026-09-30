@@ -4140,12 +4140,16 @@ dependencies = [
  "anyhow",
  "dirs 6.0.0",
  "gpui-kit",
+ "raw-window-handle",
  "same-file",
  "serde",
  "serde_json",
  "smol",
  "tempfile",
  "toml 1.1.6+spec-1.1.0",
+ "wayland-backend",
+ "wayland-client",
+ "wayland-protocols",
 ]
 
 [[package]]

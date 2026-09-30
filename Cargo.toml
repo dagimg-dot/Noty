@@ -18,6 +18,12 @@ serde_json = "1"
 smol = "2"
 toml = "1"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+raw-window-handle = "0.6"
+wayland-backend = { version = "0.3", features = ["client_system", "dlopen"] }
+wayland-client = "0.31"
+wayland-protocols = { version = "0.32", features = ["client", "staging"] }
+
 [dev-dependencies]
 tempfile = "3"
 

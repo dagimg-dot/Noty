@@ -1,4 +1,6 @@
 mod actions;
+#[cfg(unix)]
+mod activation;
 pub mod app;
 mod appearance;
 pub mod config;
