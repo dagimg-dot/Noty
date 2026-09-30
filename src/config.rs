@@ -6,6 +6,8 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value, json};
 
+use crate::theme::{Variant, base_theme_id};
+
 pub const MIN_FONT_SIZE: f32 = 8.;
 pub const MAX_FONT_SIZE: f32 = 32.;
 const DEFAULT_FONT_SIZE: f32 = 12.;
@@ -100,6 +102,15 @@ impl Config {
         self.set("theme", name);
     }
 
+    pub fn theme_id(&self, variant: Variant) -> String {
+        self.get(theme_key(variant))
+            .unwrap_or_else(|| base_theme_id(variant).to_owned())
+    }
+
+    pub fn set_theme_id(&mut self, variant: Variant, id: &str) {
+        self.set(theme_key(variant), id);
+    }
+
     /// The editor font size in points.
     pub fn font_size(&self) -> f32 {
         self.get("font_size")
@@ -174,6 +185,13 @@ impl Config {
         if let Ok(value) = serde_json::to_value(value) {
             self.values.insert(key.to_owned(), value);
         }
+    }
+}
+
+fn theme_key(variant: Variant) -> &'static str {
+    match variant {
+        Variant::Light => "light_theme",
+        Variant::Dark => "dark_theme",
     }
 }
 
@@ -288,6 +306,16 @@ mod tests {
         assert_eq!(saved["font_size"], 15);
         assert_eq!(saved["theme"], "light");
         assert_eq!(saved["last_opened_file"], "/notes/todo");
+    }
+
+    #[test]
+    fn remembers_a_theme_for_each_variant() {
+        let (_dir, mut config) = config_with("{}");
+        assert_eq!(config.theme_id(Variant::Dark), "noty-dark");
+        config.set_theme_id(Variant::Dark, "vesper");
+        config.set_theme_id(Variant::Light, "catppuccin-latte");
+        assert_eq!(config.theme_id(Variant::Dark), "vesper");
+        assert_eq!(config.theme_id(Variant::Light), "catppuccin-latte");
     }
 
     #[test]
