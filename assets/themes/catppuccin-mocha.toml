@@ -1,0 +1,28 @@
+[meta]
+name = "Catppuccin Mocha"
+description = "The Original — Our darkest variant offering a cozy feeling with color-rich accents."
+variant = "dark"
+
+[colors.core]
+background = "#1E1E2E"
+foreground = "#CDD6F4"
+secondary_background = "#181825"
+border = "#424265"
+accent = "#89B4FA"
+
+[colors.accents]
+blue = "#89B4FA"
+green = "#A6E3A1"
+magenta = "#F5C2E7"
+orange = "#FAB387"
+purple = "#CBA6F7"
+red = "#F38BA8"
+yellow = "#F9E2AF"
+cyan = "#94E2D5"
+
+[colors.list.item.selection]
+background = "#41425d"
+secondary_background = "#383A4A"
+
+[colors.grid.item]
+background = "#383856"

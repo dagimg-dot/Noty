@@ -1,0 +1,28 @@
+[meta]
+name = "Tokyo Night Storm"
+description = "A clean theme that celebrates the lights of Downtown Tokyo at night."
+variant = "dark"
+
+[colors.core]
+background = "#24283B"
+foreground = "#A9B1D6"
+secondary_background = "#1F2335"
+border = "#464D72"
+accent = "#7AA2F7"
+
+[colors.accents]
+blue = "#7AA2F7"
+green = "#9ECE6A"
+magenta = "#AD8EE6"
+orange = "#E0AF68"
+purple = "#AD8EE6"
+red = "#F7768E"
+yellow = "#E0AF68"
+cyan = "#449DAB"
+
+[colors.list.item.selection]
+background = "#444c6d"
+secondary_background = "#3B4261"
+
+[colors.grid.item]
+background = "#3d4464"

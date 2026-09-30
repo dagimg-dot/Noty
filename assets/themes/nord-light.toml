@@ -1,0 +1,28 @@
+[meta]
+name = "Nord Light"
+description = "Arctic, north-bluish clean and elegant theme"
+variant = "light"
+
+[colors.core]
+background = "#ECEFF4"
+foreground = "#2E3440"
+secondary_background = "#E5E9F0"
+border = "#78797C"
+accent = "#5E81AC"
+
+[colors.accents]
+blue = "#5E81AC"
+green = "#A3BE8C"
+magenta = "#B48EAD"
+orange = "#D08770"
+purple = "#B48EAD"
+red = "#BF616A"
+yellow = "#EBCB8B"
+cyan = "#88C0D0"
+
+[colors.list.item.selection]
+background = "#a3b2c3"
+secondary_background = "#D8DEE9"
+
+[colors.grid.item]
+background = "#ccd4e1"

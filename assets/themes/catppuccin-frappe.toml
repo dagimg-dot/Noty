@@ -1,0 +1,28 @@
+[meta]
+name = "Catppuccin Frappé"
+description = "A less vibrant alternative using subdued colors for a muted aesthetic."
+variant = "dark"
+
+[colors.core]
+background = "#303446"
+foreground = "#C6D0F5"
+secondary_background = "#292C3C"
+border = "#545B7A"
+accent = "#8CAAEE"
+
+[colors.accents]
+blue = "#8CAAEE"
+green = "#A6D189"
+magenta = "#F4B8E4"
+orange = "#EF9F76"
+purple = "#CA9EE6"
+red = "#E78284"
+yellow = "#E5C890"
+cyan = "#81C8BE"
+
+[colors.list.item.selection]
+background = "#535974"
+secondary_background = "#51576D"
+
+[colors.grid.item]
+background = "#4b516d"

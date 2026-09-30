@@ -1,0 +1,79 @@
+[meta]
+name = "Vesper"
+description = "A minimal dark theme with warm orange and peppermint accents"
+variant = "dark"
+inherits = "noty-dark"
+
+[colors.core]
+background = "#101010"
+foreground = "#FFFFFF"
+secondary_background = "#161616"
+border = "#282828"
+accent = "#FFC799"
+accent_foreground = "#101010"
+
+[colors.accents]
+blue = "#ACA1CF"
+cyan = "#99FFE4"
+green = "#99FFE4"
+magenta = "#E29ECA"
+orange = "#FFC799"
+purple = "#ACA1CF"
+red = "#FF8080"
+yellow = "#E6B99D"
+
+[colors.main_window]
+border = "colors.core.border"
+footer = { background = "colors.core.secondary_background" }
+
+[colors.settings_window]
+border = "colors.core.border"
+
+[colors.shortcut]
+border = "colors.core.border"
+
+[colors.text]
+default = "colors.core.foreground"
+muted = "#A0A0A0"
+danger = "#FF8080"
+success = "#99FFE4"
+placeholder = "#505050"
+selection = { background = "colors.core.accent", foreground = "colors.core.accent_foreground" }
+
+[colors.text.links]
+default = "colors.core.accent"
+visited = "colors.accents.purple"
+
+[colors.input]
+border = "colors.core.border"
+border_focus = "colors.core.accent"
+border_error = "colors.accents.red"
+
+[colors.button.primary]
+background = "colors.core.accent"
+foreground = "colors.core.accent_foreground"
+hover = { background = "#FFCFA8" }
+focus = { outline = "colors.core.accent" }
+
+[colors.list.item.hover]
+background = "#1C1C1C"
+foreground = "#FFFFFF"
+secondary_foreground = "#A0A0A0"
+
+[colors.list.item.selection]
+background = "#232323"
+foreground = "#FFFFFF"
+secondary_background = "#232323"
+secondary_foreground = "#A0A0A0"
+
+[colors.grid.item]
+background = "#161616"
+hover = { outline = "colors.core.accent" }
+selection = { outline = "colors.core.accent" }
+
+[colors.scrollbars]
+background = "#343434"
+
+[colors.loading]
+bar = "colors.core.accent"
+spinner = "#FFFFFF"

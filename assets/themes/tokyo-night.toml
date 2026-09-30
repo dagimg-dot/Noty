@@ -1,0 +1,28 @@
+[meta]
+name = "Tokyo Night"
+description = "A clean theme that celebrates the lights of Downtown Tokyo at night."
+variant = "dark"
+
+[colors.core]
+background = "#1A1B26"
+foreground = "#A9B1D6"
+secondary_background = "#16161E"
+border = "#414868"
+accent = "#7AA2F7"
+
+[colors.accents]
+blue = "#7AA2F7"
+green = "#9ECE6A"
+magenta = "#BB9AF7"
+orange = "#FF9E64"
+purple = "#9AA5CE"
+red = "#F7768E"
+yellow = "#E0AF68"
+cyan = "#7DCFFF"
+
+[colors.list.item.selection]
+background = "#393d59"
+secondary_background = "#3B4261"
+
+[colors.grid.item]
+background = "#35374d"

@@ -1,0 +1,28 @@
+[meta]
+name = "Catppuccin Macchiato"
+description = "Medium contrast with gentle colors creating a soothing atmosphere."
+variant = "dark"
+
+[colors.core]
+background = "#24273A"
+foreground = "#CAD3F5"
+secondary_background = "#1E2030"
+border = "#464C71"
+accent = "#8AADF4"
+
+[colors.accents]
+blue = "#8AADF4"
+green = "#A6DA95"
+magenta = "#F5BDE6"
+orange = "#F5A97F"
+purple = "#C6A0F6"
+red = "#ED8796"
+yellow = "#EED49F"
+cyan = "#8BD5CA"
+
+[colors.list.item.selection]
+background = "#464a6a"
+secondary_background = "#494D64"
+
+[colors.grid.item]
+background = "#3d4363"

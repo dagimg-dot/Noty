@@ -1,0 +1,78 @@
+[meta]
+name = "Adwaita Light"
+description = "GNOME LibAdwaita inspired light theme"
+variant = "light"
+inherits = "noty-light"
+
+[colors.accents]
+blue = "#3584e4"
+green = "#3a944a"
+magenta = "#d56199"
+orange = "#ed5b00"
+red = "#e62d42"
+yellow = "#c88800"
+cyan = "#2190a4"
+purple = "#9141ac"
+
+[colors.core]
+accent = "colors.accents.blue"
+accent_foreground = "colors.accents.blue"
+background = "#fafafb"
+foreground = "#333338"
+secondary_background = "#ebebed"
+border = "#848485"
+
+[colors.main_window]
+border = "colors.core.border"
+footer = { background = "colors.core.secondary_background" }
+
+[colors.settings_window]
+border = "#848485"
+
+[colors.shortcut]
+border = "colors.core.border"
+
+[colors.text]
+default = "colors.core.foreground"
+muted = "#5e5c64"
+danger = "#c30000"
+success = "#007c3d"
+placeholder = "#9a9996"
+selection = { background = "colors.core.accent", foreground = "#ffffff" }
+
+[colors.text.links]
+default = "#0461be"
+visited = "#8939a4"
+
+[colors.input]
+border = "#848485"
+border_focus = "colors.core.accent"
+border_error = "#c30000"
+
+[colors.button.primary]
+background = "#ffffff"
+foreground = "#333338"
+hover = { background = "#bbffffff" }
+focus = { outline = "colors.core.accent" }
+
+[colors.list.item.hover]
+foreground = "#333338"
+secondary_foreground = "#5e5c64"
+
+[colors.list.item.selection]
+background = "#bbbbc0"
+foreground = "#333338"
+secondary_background = "colors.core.accent"
+secondary_foreground = "#5e5c64"
+
+[colors.grid.item]
+background = "#dfdfe3"
+hover = { outline = "colors.core.accent" }
+selection = { outline = "colors.core.accent" }
+
+[colors.scrollbars]
+background = "#c0bfbc"
+
+[colors.loading]
+bar = "colors.core.accent"
+spinner = "#333338"

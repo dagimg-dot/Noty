@@ -1,0 +1,35 @@
+[meta]
+name = "Noty Night"
+description = "Deep ink with a soft periwinkle accent"
+variant = "dark"
+
+[colors.core]
+accent = "#8aa4ff"
+accent_foreground = "#0f1116"
+background = "#0f1116"
+foreground = "#d9dce3"
+secondary_background = "#15181f"
+border = "#262a33"
+
+[colors.accents]
+blue = "#8aa4ff"
+green = "#9fd6a8"
+magenta = "#e29ecb"
+orange = "#e8b86b"
+red = "#f07b7b"
+yellow = "#e6c975"
+cyan = "#86d0d8"
+purple = "#b6a4f7"
+
+[colors.main_window]
+footer = { background = "colors.core.background" }
+
+[colors.text]
+muted = "#7e8596"
+placeholder = "#50566a"
+
+[colors.list.item.selection]
+background = { name = "colors.core.accent", opacity = 0.14 }
+
+[colors.list.item.hover]
+background = "#1a1d25"

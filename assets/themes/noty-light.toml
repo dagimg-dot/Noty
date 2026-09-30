@@ -1,0 +1,35 @@
+[meta]
+name = "Noty Paper"
+description = "Warm paper with an ink blue accent"
+variant = "light"
+
+[colors.core]
+accent = "#4b63d8"
+accent_foreground = "#ffffff"
+background = "#fbfaf7"
+foreground = "#22252b"
+secondary_background = "#f3f1ec"
+border = "#e2ded6"
+
+[colors.accents]
+blue = "#4b63d8"
+green = "#2f7d4f"
+magenta = "#b0488f"
+orange = "#b35c00"
+red = "#c94a4a"
+yellow = "#9a7b1f"
+cyan = "#1f7f86"
+purple = "#6f52c7"
+
+[colors.main_window]
+footer = { background = "colors.core.background" }
+
+[colors.text]
+muted = "#6f737c"
+placeholder = "#a5a8ae"
+
+[colors.list.item.selection]
+background = { name = "colors.core.accent", opacity = 0.1 }
+
+[colors.list.item.hover]
+background = "#ebe8e1"
