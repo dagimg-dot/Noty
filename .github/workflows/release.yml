@@ -10,7 +10,7 @@ jobs:
     name: "Flatpak Builder"
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-49
+      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-25.08
       options: --privileged
     steps:
       - uses: actions/checkout@v4
@@ -19,7 +19,7 @@ jobs:
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
       - name: Build Flatpak
         run: |
-          flatpak-builder --repo=repo --force-clean flatpak_app build-aux/flatpak/com.dagimg.noty.json
+          flatpak-builder --repo=repo --force-clean --install-deps-from=flathub flatpak_app build-aux/flatpak/com.dagimg.noty.json
           flatpak build-bundle repo noty-${{ steps.get_version.outputs.VERSION }}.flatpak com.dagimg.noty
           ls -la
       - name: Upload Flatpak bundle
