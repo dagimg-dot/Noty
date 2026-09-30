@@ -56,7 +56,6 @@ Themes use the [Vicinae](https://github.com/vicinaehq/vicinae) TOML format, so V
 | Platform | Folder |
 | --- | --- |
 | Linux | `~/.local/share/noty/themes` |
-| Flatpak | `~/.var/app/com.dagimg.noty/data/noty/themes` |
 | macOS | `~/Library/Application Support/noty/themes` |
 | Windows | `%APPDATA%\noty\themes` |
 
@@ -81,7 +80,7 @@ Colors are hex values or references to other colors, optionally with `opacity`, 
 
 ## Settings
 
-The <kbd>⋯</kbd> menu covers themes, appearance, line numbers, the close button and text size. Everything else lives in `com.dagimg.noty.json`, the same file the GTK version of Noty used. It is in `~/.config` on Linux, `~/.var/app/com.dagimg.noty/config` for the Flatpak, `~/Library/Application Support` on macOS and `%APPDATA%` on Windows.
+The <kbd>⋯</kbd> menu covers themes, appearance, line numbers, the close button and text size. Everything else lives in `com.dagimg.noty.json`, the same file the GTK version of Noty used. It is in `~/.config` on Linux, `~/Library/Application Support` on macOS and `%APPDATA%` on Windows.
 
 | Key | Default | Description |
 | --- | --- | --- |
@@ -97,19 +96,15 @@ Run `noty --notes-dir DIR` to open a different folder for one session.
 
 ## Installation
 
-### Flatpak (Recommended)
+### Release Tarball (Recommended)
 
-Flatpak bundles are available from the [GitHub Releases page](https://github.com/dagimg-dot/noty/releases). Download the latest `.flatpak` file and install it using your graphical software center or via the command line:
-
-```bash
-flatpak install noty-x.x.x.flatpak
-```
-
-### Updating
+Download the latest `noty-x.x.x-linux-<arch>.tar.gz` for your CPU (`x86_64` or `aarch64`) from the [GitHub Releases page](https://github.com/dagimg-dot/noty/releases) and extract it into `~/.local`:
 
 ```bash
-flatpak install --or-update noty.flatpak
+tar -xzf noty-x.x.x-linux-x86_64.tar.gz -C ~/.local --strip-components=1
 ```
+
+This puts `noty` in `~/.local/bin` and its desktop entry and icons in `~/.local/share`, so Noty appears in your app launcher as long as `~/.local/bin` is on your `PATH`. Extracting a newer tarball the same way updates it.
 
 ### Building from Source
 
@@ -141,7 +136,7 @@ flatpak install --or-update noty.flatpak
     make install
     ```
 
-> **Note:** Check `Makefile` for more targets, such as `test`, `lint` and `dev-release` for a development Flatpak.
+> **Note:** Check `Makefile` for more targets, such as `test`, `lint` and `dist`, which builds the release tarball.
 
 ## TODO
 
