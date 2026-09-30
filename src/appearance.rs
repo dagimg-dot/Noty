@@ -93,6 +93,9 @@ pub fn apply(library: &ThemeLibrary, config: &Config, window: Option<&mut Window
         }
         theme.font_size = px(14.);
         theme.mono_font_family = editor;
+        theme.notification.placement = Anchor::BottomCenter;
+        theme.notification.width = px(340.);
+        theme.notification.margins.bottom = px(42.);
     });
 }
 
