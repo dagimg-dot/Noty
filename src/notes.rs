@@ -66,7 +66,8 @@ impl NoteStore {
     }
 
     pub fn create(&mut self, name: &str) -> Result<PathBuf> {
-        let path = self.path_for(&self.dir, name)?;
+        let name = valid_name(name)?;
+        let path = self.dir.join(file_name(name, self.use_extension));
         match fs::OpenOptions::new()
             .write(true)
             .create_new(true)
@@ -74,22 +75,20 @@ impl NoteStore {
         {
             Ok(_) => {}
             Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {
-                bail!("A note named “{}” already exists", name.trim())
+                bail!("A note named “{name}” already exists")
             }
             Err(err) => return Err(err.into()),
         }
         self.scan()?;
         Ok(path)
     }
+}
 
-    fn path_for(&self, dir: &Path, name: &str) -> Result<PathBuf> {
-        let name = valid_name(name)?;
-        let file_name = if self.use_extension {
-            format!("{name}.md")
-        } else {
-            name.to_owned()
-        };
-        Ok(dir.join(file_name))
+fn file_name(name: &str, markdown: bool) -> String {
+    if markdown || name.contains('.') {
+        format!("{name}.md")
+    } else {
+        name.to_owned()
     }
 }
 
@@ -287,6 +286,14 @@ mod tests {
         let mut notes = NoteStore::new(dir.path().into(), false, true, SortMethod::Name);
         assert_eq!(notes.create("Plan").unwrap(), dir.path().join("Plan.md"));
         assert_eq!(names(&notes), ["Plan"]);
+    }
+
+    #[test]
+    fn names_with_dots_stay_visible() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut notes = store(dir.path());
+        assert_eq!(notes.create("v1.2").unwrap(), dir.path().join("v1.2.md"));
+        assert_eq!(names(&notes), ["v1.2"]);
     }
 
     #[test]
