@@ -146,6 +146,14 @@ impl Config {
         self.set("editor_show_line_numbers", show);
     }
 
+    pub fn show_close_button(&self) -> bool {
+        self.get("show_close_button").unwrap_or(true)
+    }
+
+    pub fn set_show_close_button(&mut self, show: bool) {
+        self.set("show_close_button", show);
+    }
+
     pub fn window_size(&self) -> (f32, f32) {
         self.persist_window_size()
             .then(|| self.get::<Map<String, Value>>("windowsize"))
@@ -316,6 +324,14 @@ mod tests {
         config.set_theme_id(Variant::Light, "catppuccin-latte");
         assert_eq!(config.theme_id(Variant::Dark), "vesper");
         assert_eq!(config.theme_id(Variant::Light), "catppuccin-latte");
+    }
+
+    #[test]
+    fn the_close_button_shows_until_turned_off() {
+        let (_dir, mut config) = config_with("{}");
+        assert!(config.show_close_button());
+        config.set_show_close_button(false);
+        assert!(!config.show_close_button());
     }
 
     #[test]

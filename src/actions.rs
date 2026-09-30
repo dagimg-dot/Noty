@@ -21,6 +21,7 @@ gpui_kit::actions!(
         UseLightAppearance,
         UseDarkAppearance,
         ToggleLineNumbers,
+        ToggleCloseButton,
         Quit,
     ]
 );

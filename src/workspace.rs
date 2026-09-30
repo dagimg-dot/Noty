@@ -14,8 +14,8 @@ use gpui_kit::*;
 
 use crate::actions::{
     Confirm, ConfirmCreate, DeleteNote, Dismiss, FocusSearch, FollowSystemAppearance, Quit,
-    ReloadNote, RenameNote, SaveNote, SelectNext, SelectPrev, SelectTheme, ToggleLineNumbers,
-    UseDarkAppearance, UseLightAppearance, ZoomIn, ZoomOut, ZoomReset,
+    ReloadNote, RenameNote, SaveNote, SelectNext, SelectPrev, SelectTheme, ToggleCloseButton,
+    ToggleLineNumbers, UseDarkAppearance, UseLightAppearance, ZoomIn, ZoomOut, ZoomReset,
 };
 use crate::appearance;
 use crate::config::{Appearance, Config, MAX_FONT_SIZE, MIN_FONT_SIZE};
@@ -700,6 +700,18 @@ impl Workspace {
         cx.notify();
     }
 
+    fn toggle_close_button(
+        &mut self,
+        _: &ToggleCloseButton,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let show = !self.config.show_close_button();
+        self.config.set_show_close_button(show);
+        self.persist_config();
+        cx.notify();
+    }
+
     fn zoom(&mut self, points: f32, cx: &mut Context<Self>) {
         self.font_size = points.clamp(MIN_FONT_SIZE, MAX_FONT_SIZE);
         self.config.set_font_size(self.font_size);
@@ -738,8 +750,9 @@ impl Workspace {
         let menu = self.render_menu_button(cx);
         let theme = cx.theme();
         let this = cx.entity().downgrade();
-        let show_close =
-            cfg!(target_os = "linux") && matches!(window.window_decorations(), Decorations::Server);
+        let show_close = self.config.show_close_button()
+            && cfg!(target_os = "linux")
+            && matches!(window.window_decorations(), Decorations::Server);
         let dirty = !self.search_open
             && matches!(self.save_state, SaveState::Unsaved | SaveState::Conflict);
         let query = self.search.read(cx).query().clone();
@@ -821,6 +834,7 @@ impl Workspace {
     fn render_menu_button(&self, cx: &mut Context<Self>) -> impl IntoElement + use<> {
         let has_note = self.current.is_some();
         let line_numbers = self.config.show_line_numbers();
+        let close_button = self.config.show_close_button();
         let appearance = self.config.appearance();
         let light = SharedString::from(self.config.theme_id(Variant::Light));
         let dark = SharedString::from(self.config.theme_id(Variant::Dark));
@@ -881,6 +895,7 @@ impl Workspace {
                             )
                         })
                         .menu_with_check("Line Numbers", line_numbers, Box::new(ToggleLineNumbers))
+                        .menu_with_check("Close Button", close_button, Box::new(ToggleCloseButton))
                         .separator()
                         .menu("Bigger Text", Box::new(ZoomIn))
                         .menu("Smaller Text", Box::new(ZoomOut))
@@ -1066,6 +1081,7 @@ impl Render for Workspace {
             .on_action(cx.listener(Self::use_light_appearance))
             .on_action(cx.listener(Self::use_dark_appearance))
             .on_action(cx.listener(Self::toggle_line_numbers))
+            .on_action(cx.listener(Self::toggle_close_button))
             .on_action(cx.listener(Self::zoom_in))
             .on_action(cx.listener(Self::zoom_out))
             .on_action(cx.listener(Self::zoom_reset))
