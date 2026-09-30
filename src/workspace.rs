@@ -1,16 +1,20 @@
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
-use gpui_kit::component::input::{Editor, EditorState, InputEvent, TabSize};
+use gpui_kit::component::input::{Editor, EditorState, Input, InputEvent, InputState, TabSize};
 use gpui_kit::component::notification::Notification;
-use gpui_kit::component::{ActiveTheme as _, TitleBar, WindowExt as _};
+use gpui_kit::component::{ActiveTheme as _, Sizable as _, TitleBar, WindowExt as _};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::*;
 
-use crate::actions::{Quit, ReloadNote, SaveNote, ZoomIn, ZoomOut, ZoomReset};
+use crate::actions::{
+    Confirm, ConfirmCreate, Dismiss, FocusSearch, Quit, ReloadNote, SaveNote, SelectNext,
+    SelectPrev, ZoomIn, ZoomOut, ZoomReset,
+};
 use crate::appearance;
 use crate::config::{Config, MAX_FONT_SIZE, MIN_FONT_SIZE};
 use crate::notes::{self, NoteStore, SaveOutcome};
+use crate::search::{Search, SearchEvent};
 use crate::theme::ThemeLibrary;
 use crate::ui::{self, AppIcon};
 
@@ -37,6 +41,8 @@ pub struct Workspace {
     themes: ThemeLibrary,
     store: NoteStore,
     editor: Entity<EditorState>,
+    search: Entity<Search>,
+    search_open: bool,
     current: Option<OpenNote>,
     save_state: SaveState,
     word_count: usize,
@@ -68,8 +74,12 @@ impl Workspace {
                 })
                 .placeholder("Start writing…")
         });
+        let search = cx.new(|cx| Search::new(window, cx));
+        let query = search.read(cx).query().clone();
         let subscriptions = vec![
             cx.subscribe_in(&editor, window, Self::on_editor_event),
+            cx.subscribe_in(&search, window, Self::on_search_event),
+            cx.subscribe_in(&query, window, Self::on_query_event),
             cx.observe_window_activation(window, |this, window, cx| {
                 if window.is_window_active() {
                     this.check_disk(window, cx);
@@ -95,6 +105,8 @@ impl Workspace {
             themes,
             store,
             editor,
+            search,
+            search_open: false,
             current: None,
             save_state: SaveState::Saved,
             word_count: 0,
@@ -113,7 +125,7 @@ impl Workspace {
             .filter(|path| path.starts_with(self.store.dir()) && path.is_file());
         match last_note {
             Some(path) => self.open(&path, window, cx),
-            None => window.focus(&self.focus_handle, cx),
+            None => self.focus_search(window, cx),
         }
     }
 
@@ -141,6 +153,89 @@ impl Workspace {
             InputEvent::Change => self.on_edit(window, cx),
             InputEvent::Blur => self.save(false, window, cx),
             _ => {}
+        }
+    }
+
+    fn on_query_event(
+        &mut self,
+        _: &Entity<InputState>,
+        event: &InputEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        match event {
+            InputEvent::Focus => self.begin_search(window, cx),
+            InputEvent::Blur => self.end_search(window, cx),
+            _ => {}
+        }
+    }
+
+    fn on_search_event(
+        &mut self,
+        _: &Entity<Search>,
+        event: &SearchEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        match event {
+            SearchEvent::Open(path) => self.open(&path.clone(), window, cx),
+            SearchEvent::Create(name) => match self.store.create(name) {
+                Ok(path) => {
+                    self.open(&path, window, cx);
+                    window.push_notification(
+                        Notification::success(format!("Created “{}”", name.trim())),
+                        cx,
+                    );
+                }
+                Err(error) => window.push_notification(Notification::error(error.to_string()), cx),
+            },
+            SearchEvent::Dismissed => self.focus_editor(window, cx),
+        }
+    }
+
+    fn begin_search(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.search_open {
+            return;
+        }
+        self.save(false, window, cx);
+        self.rescan(window, cx);
+        let notes = self.store.notes().to_vec();
+        self.search
+            .update(cx, |search, cx| search.begin(notes, window, cx));
+        self.search_open = true;
+        cx.notify();
+    }
+
+    fn end_search(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if !self.search_open {
+            return;
+        }
+        self.search_open = false;
+        let name = self.current.as_ref().map(|note| note.name.clone());
+        self.search
+            .update(cx, |search, cx| search.show_current(name, window, cx));
+        cx.notify();
+    }
+
+    /// Focuses the search field and opens the list. The field's own focus
+    /// event only fires between rendered frames, so this does not wait
+    /// for it.
+    fn focus_search(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.search
+            .update(cx, |search, cx| search.focus(window, cx));
+        self.begin_search(window, cx);
+    }
+
+    fn focus_search_action(
+        &mut self,
+        _: &FocusSearch,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.search_open && self.current.is_some() {
+            self.focus_editor(window, cx);
+        } else {
+            self.focus_search(window, cx);
         }
     }
 
@@ -294,6 +389,11 @@ impl Workspace {
         });
         self.editor
             .update(cx, |editor, cx| editor.set_value(text, window, cx));
+        if !self.search_open {
+            let shown = Some(name.clone());
+            self.search
+                .update(cx, |search, cx| search.show_current(shown, window, cx));
+        }
         if focus {
             self.focus_editor(window, cx);
         }
@@ -305,6 +405,7 @@ impl Workspace {
         if self.current.is_some() {
             self.editor
                 .update(cx, |editor, cx| editor.focus(window, cx));
+            self.end_search(window, cx);
         }
     }
 
@@ -347,11 +448,9 @@ impl Workspace {
         let this = cx.entity().downgrade();
         let show_close =
             cfg!(target_os = "linux") && matches!(window.window_decorations(), Decorations::Server);
-        let dirty = matches!(self.save_state, SaveState::Unsaved | SaveState::Conflict);
-        let title = self
-            .current
-            .as_ref()
-            .map_or(SharedString::new_static("Noty"), |note| note.name.clone());
+        let dirty = !self.search_open
+            && matches!(self.save_state, SaveState::Unsaved | SaveState::Conflict);
+        let query = self.search.read(cx).query().clone();
         let close = div()
             .id("close-window")
             .flex_none()
@@ -371,6 +470,45 @@ impl Workspace {
             })
             .child(ui::icon(AppIcon::Close, px(12.), theme.muted_foreground));
 
+        let unsaved_dot = div()
+            .size(px(7.))
+            .mr(px(4.))
+            .rounded_full()
+            .bg(theme.primary);
+        let field = Input::new(&query)
+            .small()
+            .cleanable(true)
+            .focus_bordered(false)
+            .prefix(ui::icon(AppIcon::Search, px(14.), theme.muted_foreground))
+            .when(dirty, |field| field.suffix(unsaved_dot));
+        let search_field = div()
+            .key_context("NotySearch")
+            .flex_1()
+            .min_w_0()
+            .mx(px(if show_close { 14. } else { 24. }))
+            .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+            .on_action(cx.listener(|this, action: &SelectNext, window, cx| {
+                this.search
+                    .update(cx, |search, cx| search.select_next(action, window, cx))
+            }))
+            .on_action(cx.listener(|this, action: &SelectPrev, window, cx| {
+                this.search
+                    .update(cx, |search, cx| search.select_prev(action, window, cx))
+            }))
+            .on_action(cx.listener(|this, action: &Confirm, window, cx| {
+                this.search
+                    .update(cx, |search, cx| search.confirm(action, window, cx))
+            }))
+            .on_action(cx.listener(|this, action: &ConfirmCreate, window, cx| {
+                this.search
+                    .update(cx, |search, cx| search.confirm_create(action, window, cx))
+            }))
+            .on_action(cx.listener(|this, action: &Dismiss, window, cx| {
+                this.search
+                    .update(cx, |search, cx| search.dismiss(action, window, cx))
+            }))
+            .child(Styled::h(field, px(30.)));
+
         TitleBar::new().child(
             div()
                 .size_full()
@@ -378,21 +516,7 @@ impl Workspace {
                 .items_center()
                 .pr(px(6.))
                 .when(show_close, |bar| bar.child(close))
-                .child(
-                    div()
-                        .flex_1()
-                        .flex()
-                        .justify_center()
-                        .items_center()
-                        .gap(px(6.))
-                        .text_size(px(13.))
-                        .font_weight(FontWeight::MEDIUM)
-                        .text_color(theme.foreground)
-                        .child(title)
-                        .when(dirty, |title| {
-                            title.child(div().size(px(6.)).rounded_full().bg(theme.primary))
-                        }),
-                ),
+                .child(search_field),
         )
     }
 
@@ -446,6 +570,24 @@ impl Workspace {
                         if count == 1 { "note" } else { "notes" },
                         ui::display_path(self.store.dir())
                     )),
+            )
+            .child(
+                div()
+                    .mt(px(14.))
+                    .flex()
+                    .flex_col()
+                    .gap(px(9.))
+                    .child(ui::shortcut_hint_groups(
+                        &[&["Ctrl", "P"], &["Alt", "S"]],
+                        "Search or create",
+                        cx,
+                    ))
+                    .child(ui::shortcut_hint_groups(
+                        &[&["↑", "↓"], &["Ctrl", "J", "K"]],
+                        "Move through notes",
+                        cx,
+                    ))
+                    .child(ui::shortcut_hint(&["↵"], "Open, or create if new", cx)),
             )
     }
 
@@ -519,6 +661,7 @@ impl Render for Workspace {
             .id("workspace")
             .key_context("NotyWorkspace")
             .track_focus(&self.focus_handle)
+            .on_action(cx.listener(Self::focus_search_action))
             .on_action(cx.listener(Self::save_action))
             .on_action(cx.listener(Self::reload_action))
             .on_action(cx.listener(Self::zoom_in))
@@ -532,6 +675,7 @@ impl Render for Workspace {
             .text_color(foreground)
             .font_family(font_family)
             .child(title_bar)
+            .children(self.search_open.then(|| self.search.clone()))
             .child(div().flex_1().min_h_0().child(body))
             .child(status_bar)
     }
