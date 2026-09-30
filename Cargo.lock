@@ -4138,6 +4138,7 @@ name = "noty"
 version = "0.5.0"
 dependencies = [
  "anyhow",
+ "dirs 6.0.0",
  "gpui-kit",
  "serde",
  "serde_json",
