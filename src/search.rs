@@ -4,10 +4,13 @@ use std::time::{Duration, SystemTime};
 
 use gpui_kit::component::ActiveTheme as _;
 use gpui_kit::component::input::{InputEvent, InputState};
+use gpui_kit::component::menu::ContextMenuExt as _;
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::*;
 
-use crate::actions::{Confirm, ConfirmCreate, Dismiss, SelectNext, SelectPrev};
+use crate::actions::{
+    Confirm, ConfirmCreate, DeleteNote, Dismiss, RenameNote, SelectNext, SelectPrev,
+};
 use crate::fuzzy::fuzzy_match;
 use crate::notes::Note;
 use crate::ui::{self, AppIcon};
@@ -90,6 +93,7 @@ pub struct Search {
     notes: Vec<Note>,
     rows: Vec<Row>,
     selected: usize,
+    navigating: bool,
     current: Option<SharedString>,
     scroll: UniformListScrollHandle,
     generation: usize,
@@ -111,6 +115,7 @@ impl Search {
             notes: Vec::new(),
             rows: Vec::new(),
             selected: 0,
+            navigating: false,
             current: None,
             scroll: UniformListScrollHandle::new(),
             generation: 0,
@@ -146,10 +151,29 @@ impl Search {
         self.refilter(cx);
     }
 
+    pub fn set_notes(&mut self, notes: Vec<Note>, cx: &mut Context<Self>) {
+        self.notes = notes;
+        self.refilter(cx);
+    }
+
+    /// True once the arrow keys moved through the list, so Delete acts on
+    /// the highlighted note instead of on the typed text.
+    pub fn is_navigating(&self) -> bool {
+        self.navigating
+    }
+
+    pub fn selected_note(&self) -> Option<(PathBuf, SharedString)> {
+        match self.rows.get(self.selected)? {
+            Row::Note { path, name, .. } => Some((path.clone(), name.clone())),
+            Row::Create(_) => None,
+        }
+    }
+
     fn refilter(&mut self, cx: &mut Context<Self>) {
         let query = self.query.read(cx).value();
         let (rows, selected) = build_rows(&self.notes, &query, self.current.as_deref());
         self.rows = rows;
+        self.navigating = false;
         self.select(selected, cx);
     }
 
@@ -161,12 +185,14 @@ impl Search {
 
     pub fn select_next(&mut self, _: &SelectNext, _: &mut Window, cx: &mut Context<Self>) {
         if !self.rows.is_empty() {
+            self.navigating = true;
             self.select((self.selected + 1) % self.rows.len(), cx);
         }
     }
 
     pub fn select_prev(&mut self, _: &SelectPrev, _: &mut Window, cx: &mut Context<Self>) {
         if !self.rows.is_empty() {
+            self.navigating = true;
             self.select((self.selected + self.rows.len() - 1) % self.rows.len(), cx);
         }
     }
@@ -196,11 +222,11 @@ impl Search {
         cx.emit(SearchEvent::Dismissed);
     }
 
-    fn render_rows(&mut self, range: Range<usize>, cx: &mut Context<Self>) -> Vec<Stateful<Div>> {
+    fn render_rows(&mut self, range: Range<usize>, cx: &mut Context<Self>) -> Vec<AnyElement> {
         range.map(|ix| self.render_row(ix, cx)).collect()
     }
 
-    fn render_row(&self, ix: usize, cx: &mut Context<Self>) -> Stateful<Div> {
+    fn render_row(&self, ix: usize, cx: &mut Context<Self>) -> AnyElement {
         let theme = cx.theme();
         let selected = ix == self.selected;
         let accent = theme.primary;
@@ -282,7 +308,8 @@ impl Search {
                 .when(selected, |row| row.child(ui::kbd("↵", cx))),
         };
 
-        div()
+        let is_note = matches!(self.rows[ix], Row::Note { .. });
+        let item = div()
             .id(ix)
             .w_full()
             .h(px(ROW_HEIGHT))
@@ -292,7 +319,19 @@ impl Search {
                 this.selected = ix;
                 this.confirm(&Confirm, window, cx);
             }))
-            .child(row)
+            .child(row);
+        if !is_note {
+            return item.into_any_element();
+        }
+        item.on_mouse_down(
+            MouseButton::Right,
+            cx.listener(move |this, _, _, cx| this.select(ix, cx)),
+        )
+        .context_menu(|menu, _, _| {
+            menu.menu("Rename…", Box::new(RenameNote))
+                .menu("Delete…", Box::new(DeleteNote))
+        })
+        .into_any_element()
     }
 }
 

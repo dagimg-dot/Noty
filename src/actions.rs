@@ -11,6 +11,8 @@ gpui_kit::actions!(
         Dismiss,
         SaveNote,
         ReloadNote,
+        RenameNote,
+        DeleteNote,
         ZoomIn,
         ZoomOut,
         ZoomReset,
@@ -20,6 +22,7 @@ gpui_kit::actions!(
 
 const SEARCH_FIELD: Option<&str> = Some("NotySearch > Input");
 const EDITOR: Option<&str> = Some("NotyEditor > Input");
+const NOTE_LIST: Option<&str> = Some("navigating > Input");
 
 pub fn bind_keys(cx: &mut App) {
     cx.bind_keys([
@@ -33,6 +36,10 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("enter", Confirm, SEARCH_FIELD),
         KeyBinding::new("shift-enter", ConfirmCreate, SEARCH_FIELD),
         KeyBinding::new("escape", Dismiss, SEARCH_FIELD),
+        KeyBinding::new("f2", RenameNote, None),
+        KeyBinding::new("ctrl-r", RenameNote, SEARCH_FIELD),
+        KeyBinding::new("delete", DeleteNote, NOTE_LIST),
+        KeyBinding::new("shift-delete", DeleteNote, SEARCH_FIELD),
         KeyBinding::new("secondary-s", SaveNote, None),
         KeyBinding::new("secondary-shift-r", ReloadNote, None),
         KeyBinding::new("secondary-=", ZoomIn, None),

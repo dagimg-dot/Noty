@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
+use gpui_kit::component::button::{Button, ButtonVariant, ButtonVariants as _};
 use gpui_kit::component::input::{Editor, EditorState, Input, InputEvent, InputState, TabSize};
 use gpui_kit::component::notification::Notification;
 use gpui_kit::component::{ActiveTheme as _, Sizable as _, TitleBar, WindowExt as _};
@@ -8,8 +9,8 @@ use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::*;
 
 use crate::actions::{
-    Confirm, ConfirmCreate, Dismiss, FocusSearch, Quit, ReloadNote, SaveNote, SelectNext,
-    SelectPrev, ZoomIn, ZoomOut, ZoomReset,
+    Confirm, ConfirmCreate, DeleteNote, Dismiss, FocusSearch, Quit, ReloadNote, RenameNote,
+    SaveNote, SelectNext, SelectPrev, ZoomIn, ZoomOut, ZoomReset,
 };
 use crate::appearance;
 use crate::config::{Config, MAX_FONT_SIZE, MIN_FONT_SIZE};
@@ -36,6 +37,12 @@ struct OpenNote {
     saved_text: String,
 }
 
+struct Renaming {
+    path: PathBuf,
+    input: Entity<InputState>,
+    error: Option<SharedString>,
+}
+
 pub struct Workspace {
     config: Config,
     themes: ThemeLibrary,
@@ -49,6 +56,7 @@ pub struct Workspace {
     font_size: f32,
     focus_handle: FocusHandle,
     autosave: Option<Task<()>>,
+    renaming: Option<Renaming>,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -113,6 +121,7 @@ impl Workspace {
             font_size,
             focus_handle: cx.focus_handle(),
             autosave: None,
+            renaming: None,
             _subscriptions: subscriptions,
         }
     }
@@ -165,7 +174,11 @@ impl Workspace {
     ) {
         match event {
             InputEvent::Focus => self.begin_search(window, cx),
-            InputEvent::Blur => self.end_search(window, cx),
+            InputEvent::Blur => cx.defer_in(window, |this, window, cx| {
+                if this.editor.read(cx).focus_handle(cx).is_focused(window) {
+                    this.end_search(window, cx);
+                }
+            }),
             _ => {}
         }
     }
@@ -409,6 +422,189 @@ impl Workspace {
         }
     }
 
+    fn target_note(&self, cx: &App) -> Option<(PathBuf, SharedString)> {
+        if self.search_open {
+            self.search.read(cx).selected_note()
+        } else {
+            self.current
+                .as_ref()
+                .map(|note| (note.path.clone(), note.name.clone()))
+        }
+    }
+
+    fn refresh_notes(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.rescan(window, cx);
+        if self.search_open {
+            let notes = self.store.notes().to_vec();
+            self.search
+                .update(cx, |search, cx| search.set_notes(notes, cx));
+        }
+    }
+
+    fn rename_action(&mut self, _: &RenameNote, window: &mut Window, cx: &mut Context<Self>) {
+        let Some((path, name)) = self.target_note(cx) else {
+            return;
+        };
+        let input = cx.new(|cx| InputState::new(window, cx).default_value(name));
+        self.renaming = Some(Renaming {
+            path,
+            input: input.clone(),
+            error: None,
+        });
+
+        let workspace = cx.entity().downgrade();
+        let field = input.clone();
+        window.open_dialog(cx, move |dialog, _, cx| {
+            let error = workspace
+                .upgrade()
+                .and_then(|workspace| workspace.read(cx).renaming.as_ref()?.error.clone());
+            let (submit, confirm) = (workspace.clone(), workspace.clone());
+            dialog
+                .title("Rename note")
+                .w(px(360.))
+                .child(
+                    div()
+                        .flex()
+                        .flex_col()
+                        .gap(px(8.))
+                        .child(Input::new(&field))
+                        .when_some(error, |form, error| {
+                            form.child(
+                                div()
+                                    .text_size(px(12.))
+                                    .text_color(cx.theme().danger)
+                                    .child(error),
+                            )
+                        }),
+                )
+                .footer(
+                    div()
+                        .flex()
+                        .justify_end()
+                        .gap(px(8.))
+                        .child(
+                            Button::new("cancel-rename")
+                                .label("Cancel")
+                                .on_click(|_, window, cx| window.close_dialog(cx)),
+                        )
+                        .child(
+                            Button::new("confirm-rename")
+                                .primary()
+                                .label("Rename")
+                                .on_click(move |_, window, cx| {
+                                    let renamed = submit
+                                        .update(cx, |this, cx| this.submit_rename(window, cx))
+                                        .unwrap_or(false);
+                                    if renamed {
+                                        window.close_dialog(cx);
+                                    }
+                                }),
+                        ),
+                )
+                .on_ok(move |_, window, cx| {
+                    confirm
+                        .update(cx, |this, cx| this.submit_rename(window, cx))
+                        .unwrap_or(false)
+                })
+        });
+        window.defer(cx, move |window, cx| {
+            input.update(cx, |input, cx| {
+                input.focus(window, cx);
+                input.select_all(window, cx);
+            });
+        });
+    }
+
+    /// Renames the note being renamed and reports whether it worked, so the
+    /// dialog can stay open to show why it did not.
+    fn submit_rename(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
+        let Some(renaming) = &self.renaming else {
+            return true;
+        };
+        let path = renaming.path.clone();
+        let new_name = renaming.input.read(cx).value().to_string();
+        if self.current.as_ref().is_some_and(|note| note.path == path) {
+            self.save(false, window, cx);
+        }
+        match self.store.rename(&path, &new_name) {
+            Ok(new_path) => {
+                self.renaming = None;
+                let name = SharedString::from(notes::note_name(&new_path));
+                if let Some(current) = self.current.as_mut().filter(|note| note.path == path) {
+                    current.path = new_path;
+                    current.name = name.clone();
+                    window.set_window_title(&format!("{name} — Noty"));
+                    if !self.search_open {
+                        let shown = Some(name.clone());
+                        self.search
+                            .update(cx, |search, cx| search.show_current(shown, window, cx));
+                    }
+                }
+                self.refresh_notes(window, cx);
+                window.push_notification(Notification::success(format!("Renamed to “{name}”")), cx);
+                true
+            }
+            Err(error) => {
+                if let Some(renaming) = self.renaming.as_mut() {
+                    renaming.error = Some(error.to_string().into());
+                }
+                cx.notify();
+                false
+            }
+        }
+    }
+
+    fn delete_action(&mut self, _: &DeleteNote, window: &mut Window, cx: &mut Context<Self>) {
+        let Some((path, name)) = self.target_note(cx) else {
+            return;
+        };
+        let workspace = cx.entity().downgrade();
+        window.open_alert_dialog(cx, move |alert, _, _| {
+            let (workspace, path) = (workspace.clone(), path.clone());
+            alert
+                .title("Delete note?")
+                .description(format!("“{name}” will be deleted permanently."))
+                .ok_text("Delete")
+                .ok_variant(ButtonVariant::Danger)
+                .show_cancel(true)
+                .on_ok(move |_, window, cx| {
+                    workspace
+                        .update(cx, |this, cx| this.delete_note(&path, window, cx))
+                        .ok();
+                    true
+                })
+        });
+    }
+
+    fn delete_note(&mut self, path: &Path, window: &mut Window, cx: &mut Context<Self>) {
+        let name = notes::note_name(path);
+        if self.current.as_ref().is_some_and(|note| note.path == path) {
+            self.autosave = None;
+            self.current = None;
+            self.save_state = SaveState::Saved;
+            self.editor
+                .update(cx, |editor, cx| editor.set_value("", window, cx));
+            window.set_window_title("Noty");
+            if !self.search_open {
+                self.search
+                    .update(cx, |search, cx| search.show_current(None, window, cx));
+            }
+        }
+        match self.store.delete(path) {
+            Ok(()) => {
+                window.push_notification(Notification::success(format!("Deleted “{name}”")), cx)
+            }
+            Err(error) => window.push_notification(
+                Notification::error(format!("Couldn't delete “{name}”: {error}")),
+                cx,
+            ),
+        }
+        self.refresh_notes(window, cx);
+        if self.current.is_none() {
+            self.focus_search(window, cx);
+        }
+    }
+
     fn zoom(&mut self, points: f32, cx: &mut Context<Self>) {
         self.font_size = points.clamp(MIN_FONT_SIZE, MAX_FONT_SIZE);
         self.config.set_font_size(self.font_size);
@@ -451,6 +647,11 @@ impl Workspace {
         let dirty = !self.search_open
             && matches!(self.save_state, SaveState::Unsaved | SaveState::Conflict);
         let query = self.search.read(cx).query().clone();
+        let search_context = if self.search.read(cx).is_navigating() {
+            "NotySearch navigating"
+        } else {
+            "NotySearch"
+        };
         let close = div()
             .id("close-window")
             .flex_none()
@@ -482,7 +683,7 @@ impl Workspace {
             .prefix(ui::icon(AppIcon::Search, px(14.), theme.muted_foreground))
             .when(dirty, |field| field.suffix(unsaved_dot));
         let search_field = div()
-            .key_context("NotySearch")
+            .key_context(search_context)
             .flex_1()
             .min_w_0()
             .mx(px(if show_close { 14. } else { 24. }))
@@ -664,6 +865,8 @@ impl Render for Workspace {
             .on_action(cx.listener(Self::focus_search_action))
             .on_action(cx.listener(Self::save_action))
             .on_action(cx.listener(Self::reload_action))
+            .on_action(cx.listener(Self::rename_action))
+            .on_action(cx.listener(Self::delete_action))
             .on_action(cx.listener(Self::zoom_in))
             .on_action(cx.listener(Self::zoom_out))
             .on_action(cx.listener(Self::zoom_reset))
