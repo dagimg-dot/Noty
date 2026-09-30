@@ -1,4 +1,4 @@
-name: Noty flatpak bundle release
+name: Noty release
 
 on:
   push:
@@ -6,49 +6,49 @@ on:
       - "v*"
 
 jobs:
-  flatpak-builder:
-    name: "Flatpak Builder"
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-25.08
-      options: --privileged
+  build:
+    name: "Build Linux ${{ matrix.arch }}"
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-22.04
+          - arch: aarch64
+            runner: ubuntu-22.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
-      - name: Get version
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-      - name: Build Flatpak
+      - name: Install build dependencies
         run: |
-          flatpak-builder --repo=repo --force-clean --install-deps-from=flathub flatpak_app build-aux/flatpak/com.dagimg.noty.json
-          flatpak build-bundle repo noty-${{ steps.get_version.outputs.VERSION }}.flatpak com.dagimg.noty
-          ls -la
-      - name: Upload Flatpak bundle
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig-dev libfreetype-dev libxcb1-dev libxkbcommon-dev libxkbcommon-x11-dev
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Build binary and tarball
+        run: make dist
+      - name: Upload build
         uses: actions/upload-artifact@v4
         with:
-          name: noty-${{ steps.get_version.outputs.VERSION }}.flatpak
-          path: noty-${{ steps.get_version.outputs.VERSION }}.flatpak
+          name: noty-linux-${{ matrix.arch }}
+          path: dist/
           if-no-files-found: error
 
   release:
     name: "Create Release"
-    needs: flatpak-builder
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Get version
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-      - name: Download Flatpak bundle
+      - name: Download builds
         uses: actions/download-artifact@v4
         with:
-          name: noty-${{ steps.get_version.outputs.VERSION }}.flatpak
+          path: dist
+          merge-multiple: true
       - name: List files
-        run: ls -la
+        run: ls -la dist
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          files: |
-            noty-${{ steps.get_version.outputs.VERSION }}.flatpak
-            noty-${{ steps.get_version.outputs.VERSION }}-linux-x86_64.tar.gz
+          files: dist/*
           generate_release_notes: true
