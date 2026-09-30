@@ -114,7 +114,7 @@ impl Workspace {
         ];
         let this = cx.entity().downgrade();
         window.on_window_should_close(cx, move |window, cx| {
-            this.update(cx, |this, cx| this.save(false, window, cx))
+            this.update(cx, |this, cx| this.save_session(window, cx))
                 .ok();
             true
         });
@@ -752,8 +752,20 @@ impl Workspace {
         }
     }
 
-    fn quit(&mut self, _: &Quit, window: &mut Window, cx: &mut Context<Self>) {
+    /// Saves the open note and remembers it, along with the window size,
+    /// for the next launch.
+    fn save_session(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.save(false, window, cx);
+        let size = window.window_bounds().get_bounds().size;
+        self.config
+            .set_window_size(size.width.as_f32(), size.height.as_f32());
+        self.config
+            .set_last_opened_file(self.current.as_ref().map(|note| note.path.as_path()));
+        self.persist_config();
+    }
+
+    fn quit(&mut self, _: &Quit, window: &mut Window, cx: &mut Context<Self>) {
+        self.save_session(window, cx);
         cx.quit();
     }
 
@@ -789,7 +801,7 @@ impl Workspace {
             .cursor_pointer()
             .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
             .on_click(move |_, window, cx| {
-                this.update(cx, |this, cx| this.save(false, window, cx))
+                this.update(cx, |this, cx| this.save_session(window, cx))
                     .ok();
                 window.remove_window();
             })
