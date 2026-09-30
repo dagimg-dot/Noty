@@ -148,14 +148,15 @@ impl Workspace {
     }
 
     fn start(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        self.rescan(window, cx);
         let last_note = self
             .config
             .last_opened_file()
             .filter(|path| path.starts_with(self.store.dir()) && path.is_file());
-        match last_note {
-            Some(path) => self.open(&path, window, cx),
-            None => self.focus_search(window, cx),
+        if let Some(path) = last_note {
+            self.open(&path, window, cx);
+        }
+        if self.current.is_none() {
+            self.focus_search(window, cx);
         }
     }
 
