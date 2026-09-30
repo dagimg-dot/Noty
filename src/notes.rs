@@ -82,6 +82,28 @@ impl NoteStore {
         self.scan()?;
         Ok(path)
     }
+
+    /// Renames the note at `path`, keeping it in the same folder and keeping
+    /// its `.md` extension if it has one.
+    pub fn rename(&mut self, path: &Path, new_name: &str) -> Result<PathBuf> {
+        let name = valid_name(new_name)?;
+        let new_path = path.with_file_name(file_name(name, path.extension().is_some()));
+        if new_path.exists() && !same_file::is_same_file(path, &new_path)? {
+            bail!("A note named “{name}” already exists");
+        }
+        fs::rename(path, &new_path)?;
+        self.scan()?;
+        Ok(new_path)
+    }
+
+    pub fn delete(&mut self, path: &Path) -> Result<()> {
+        match fs::remove_file(path) {
+            Err(err) if err.kind() != io::ErrorKind::NotFound => return Err(err.into()),
+            _ => {}
+        }
+        self.scan()?;
+        Ok(())
+    }
 }
 
 fn file_name(name: &str, markdown: bool) -> String {
@@ -294,6 +316,58 @@ mod tests {
         let mut notes = store(dir.path());
         assert_eq!(notes.create("v1.2").unwrap(), dir.path().join("v1.2.md"));
         assert_eq!(names(&notes), ["v1.2"]);
+    }
+
+    #[test]
+    fn rename_keeps_the_folder_and_extension() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("Plan.md"), "x").unwrap();
+        fs::write(dir.path().join("todo"), "y").unwrap();
+        let mut notes = store(dir.path());
+
+        let renamed = notes
+            .rename(&dir.path().join("Plan.md"), "Roadmap")
+            .unwrap();
+        assert_eq!(renamed, dir.path().join("Roadmap.md"));
+        let renamed = notes.rename(&dir.path().join("todo"), "Errands").unwrap();
+        assert_eq!(renamed, dir.path().join("Errands"));
+        assert_eq!(names(&notes), ["Errands", "Roadmap"]);
+        assert_eq!(fs::read_to_string(dir.path().join("Errands")).unwrap(), "y");
+    }
+
+    #[test]
+    fn rename_refuses_to_replace_another_note() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("a"), "a").unwrap();
+        fs::write(dir.path().join("b"), "b").unwrap();
+        let mut notes = store(dir.path());
+
+        let err = notes.rename(&dir.path().join("a"), "b").unwrap_err();
+        assert_eq!(err.to_string(), "A note named “b” already exists");
+        assert_eq!(fs::read_to_string(dir.path().join("b")).unwrap(), "b");
+        assert!(notes.rename(&dir.path().join("a"), "a/b").is_err());
+    }
+
+    #[test]
+    fn rename_can_change_only_the_case() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("todo"), "x").unwrap();
+        let mut notes = store(dir.path());
+        notes.rename(&dir.path().join("todo"), "Todo").unwrap();
+        assert_eq!(names(&notes), ["Todo"]);
+    }
+
+    #[test]
+    fn delete_removes_the_file_and_tolerates_missing_ones() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("gone"), "x").unwrap();
+        fs::write(dir.path().join("kept"), "y").unwrap();
+        let mut notes = store(dir.path());
+
+        notes.delete(&dir.path().join("gone")).unwrap();
+        assert!(!dir.path().join("gone").exists());
+        assert_eq!(names(&notes), ["kept"]);
+        notes.delete(&dir.path().join("gone")).unwrap();
     }
 
     #[test]
