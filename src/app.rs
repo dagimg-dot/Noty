@@ -46,6 +46,12 @@ impl CommandLine {
 
 pub fn run() {
     let command_line = CommandLine::parse(std::env::args().skip(1));
+    #[cfg(unix)]
+    let listener = match crate::instance::claim() {
+        crate::instance::Launch::HandedOff => return,
+        crate::instance::Launch::First(listener) => Some(listener),
+        crate::instance::Launch::Standalone => None,
+    };
     let config = Config::load(Config::default_path());
     let store = match command_line.notes_dir {
         Some(dir) => NoteStore::new(
@@ -96,6 +102,15 @@ pub fn run() {
             match opened {
                 Ok((window, _)) => {
                     cx.activate(true);
+                    #[cfg(unix)]
+                    if let Some(listener) = listener {
+                        crate::instance::serve(listener, cx, move |_, cx| {
+                            cx.activate(true);
+                            window
+                                .update(cx, |_, window, _| window.activate_window())
+                                .ok();
+                        });
+                    }
                     #[cfg(debug_assertions)]
                     crate::script::run_from_env(window, cx);
                     #[cfg(not(debug_assertions))]

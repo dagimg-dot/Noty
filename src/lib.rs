@@ -3,6 +3,8 @@ pub mod app;
 mod appearance;
 pub mod config;
 pub mod fuzzy;
+#[cfg(unix)]
+mod instance;
 pub mod notes;
 mod saver;
 #[cfg(debug_assertions)]

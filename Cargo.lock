@@ -4143,6 +4143,7 @@ dependencies = [
  "same-file",
  "serde",
  "serde_json",
+ "smol",
  "tempfile",
  "toml 1.1.6+spec-1.1.0",
 ]
