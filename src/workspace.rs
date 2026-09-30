@@ -1,20 +1,48 @@
+use std::path::{Path, PathBuf};
+use std::time::{Duration, SystemTime};
+
+use gpui_kit::component::input::{Editor, EditorState, InputEvent, TabSize};
 use gpui_kit::component::notification::Notification;
 use gpui_kit::component::{ActiveTheme as _, TitleBar, WindowExt as _};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::*;
 
-use crate::actions::Quit;
+use crate::actions::{Quit, ReloadNote, SaveNote, ZoomIn, ZoomOut, ZoomReset};
 use crate::appearance;
-use crate::config::Config;
-use crate::notes::NoteStore;
+use crate::config::{Config, MAX_FONT_SIZE, MIN_FONT_SIZE};
+use crate::notes::{self, NoteStore, SaveOutcome};
 use crate::theme::ThemeLibrary;
 use crate::ui::{self, AppIcon};
+
+const AUTOSAVE_DELAY: Duration = Duration::from_millis(800);
+const TEXT_COLUMN: f32 = 760.;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SaveState {
+    Saved,
+    Unsaved,
+    Conflict,
+    Failed,
+}
+
+struct OpenNote {
+    path: PathBuf,
+    name: SharedString,
+    disk_modified: SystemTime,
+    saved_text: String,
+}
 
 pub struct Workspace {
     config: Config,
     themes: ThemeLibrary,
     store: NoteStore,
+    editor: Entity<EditorState>,
+    current: Option<OpenNote>,
+    save_state: SaveState,
+    word_count: usize,
+    font_size: f32,
     focus_handle: FocusHandle,
+    autosave: Option<Task<()>>,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -26,19 +54,66 @@ impl Workspace {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
-        let subscriptions = vec![cx.observe_window_appearance(window, |this, window, cx| {
-            appearance::apply(&this.themes, &this.config, Some(window), cx);
-        })];
-        cx.defer_in(window, |this, window, cx| {
-            window.focus(&this.focus_handle, cx);
-            this.rescan(window, cx);
+        let editor = cx.new(|cx| {
+            EditorState::new(window, cx)
+                .language("markdown")
+                .line_number(config.show_line_numbers())
+                .soft_wrap(true)
+                .folding(false)
+                .indent_guides(false)
+                .searchable(false)
+                .tab_size(TabSize {
+                    tab_size: 4,
+                    hard_tabs: false,
+                })
+                .placeholder("Start writing…")
         });
+        let subscriptions = vec![
+            cx.subscribe_in(&editor, window, Self::on_editor_event),
+            cx.observe_window_activation(window, |this, window, cx| {
+                if window.is_window_active() {
+                    this.check_disk(window, cx);
+                } else {
+                    this.save(false, window, cx);
+                }
+            }),
+            cx.observe_window_appearance(window, |this, window, cx| {
+                appearance::apply(&this.themes, &this.config, Some(window), cx);
+            }),
+        ];
+        let this = cx.entity().downgrade();
+        window.on_window_should_close(cx, move |window, cx| {
+            this.update(cx, |this, cx| this.save(false, window, cx))
+                .ok();
+            true
+        });
+        cx.defer_in(window, Self::start);
+
+        let font_size = config.font_size();
         Self {
             config,
             themes,
             store,
+            editor,
+            current: None,
+            save_state: SaveState::Saved,
+            word_count: 0,
+            font_size,
             focus_handle: cx.focus_handle(),
+            autosave: None,
             _subscriptions: subscriptions,
+        }
+    }
+
+    fn start(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.rescan(window, cx);
+        let last_note = self
+            .config
+            .last_opened_file()
+            .filter(|path| path.starts_with(self.store.dir()) && path.is_file());
+        match last_note {
+            Some(path) => self.open(&path, window, cx),
+            None => window.focus(&self.focus_handle, cx),
         }
     }
 
@@ -55,7 +130,211 @@ impl Workspace {
         cx.notify();
     }
 
-    fn quit(&mut self, _: &Quit, _: &mut Window, cx: &mut Context<Self>) {
+    fn on_editor_event(
+        &mut self,
+        _: &Entity<EditorState>,
+        event: &InputEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        match event {
+            InputEvent::Change => self.on_edit(window, cx),
+            InputEvent::Blur => self.save(false, window, cx),
+            _ => {}
+        }
+    }
+
+    fn on_edit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(current) = &self.current else {
+            return;
+        };
+        let text = self.editor.read(cx).value();
+        self.word_count = ui::word_count(&text);
+        if self.save_state != SaveState::Conflict {
+            let dirty = text.as_ref() != current.saved_text.as_str();
+            self.save_state = if dirty {
+                SaveState::Unsaved
+            } else {
+                SaveState::Saved
+            };
+            if dirty {
+                self.autosave = Some(cx.spawn_in(window, async move |this, cx| {
+                    cx.background_executor().timer(AUTOSAVE_DELAY).await;
+                    this.update_in(cx, |this, window, cx| this.save(false, window, cx))
+                        .ok();
+                }));
+            }
+        }
+        cx.notify();
+    }
+
+    /// Writes the open note when it has unsaved edits. With `force`, a note
+    /// that changed on disk is overwritten, which is how the user keeps
+    /// their version of a conflict.
+    fn save(&mut self, force: bool, window: &mut Window, cx: &mut Context<Self>) {
+        self.autosave = None;
+        let Some(current) = self.current.as_mut() else {
+            return;
+        };
+        let text = self.editor.read(cx).value().to_string();
+        if !force && (text == current.saved_text || self.save_state == SaveState::Conflict) {
+            return;
+        }
+        let expected = (!force).then_some(current.disk_modified);
+        match notes::save_note(&current.path, &text, expected) {
+            Ok(SaveOutcome::Saved(modified)) => {
+                current.disk_modified = modified;
+                current.saved_text = text;
+                self.save_state = SaveState::Saved;
+            }
+            Ok(SaveOutcome::Conflict) => {
+                self.save_state = SaveState::Conflict;
+                window.push_notification(
+                    Notification::warning(format!(
+                        "“{}” changed outside Noty. Save keeps your version, \
+                         Reload loads theirs.",
+                        current.name
+                    ))
+                    .autohide(false),
+                    cx,
+                );
+            }
+            Err(error) => {
+                self.save_state = SaveState::Failed;
+                window.push_notification(
+                    Notification::error(format!("Couldn't save “{}”: {error}", current.name)),
+                    cx,
+                );
+            }
+        }
+        cx.notify();
+    }
+
+    fn check_disk(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(current) = &self.current else {
+            return;
+        };
+        let on_disk = notes::modified_time(&current.path).ok();
+        if on_disk == Some(current.disk_modified) {
+            return;
+        }
+        let dirty = self.editor.read(cx).value().as_ref() != current.saved_text.as_str();
+        if on_disk.is_some() && !dirty {
+            let (name, path) = (current.name.clone(), current.path.clone());
+            self.load(&path, false, window, cx);
+            window.push_notification(
+                Notification::info(format!("Reloaded “{name}”, it changed outside Noty.")),
+                cx,
+            );
+        } else if self.save_state != SaveState::Conflict {
+            self.save(false, window, cx);
+        }
+    }
+
+    fn save_action(&mut self, _: &SaveNote, window: &mut Window, cx: &mut Context<Self>) {
+        let force = matches!(self.save_state, SaveState::Conflict | SaveState::Failed);
+        self.save(force, window, cx);
+        if force && self.save_state == SaveState::Saved {
+            window.push_notification(Notification::success("Saved your version."), cx);
+        }
+    }
+
+    fn reload_action(&mut self, _: &ReloadNote, window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(path) = self.current.as_ref().map(|note| note.path.clone()) {
+            self.load(&path, false, window, cx);
+        }
+    }
+
+    /// Opens `path`, saving the current note first. Edits that could not
+    /// be saved are never dropped: the switch is refused until they are
+    /// saved or reloaded.
+    fn open(&mut self, path: &Path, window: &mut Window, cx: &mut Context<Self>) {
+        if self.current.as_ref().is_some_and(|note| note.path == path) {
+            self.focus_editor(window, cx);
+            return;
+        }
+        self.save(false, window, cx);
+        if self.current.is_some()
+            && matches!(self.save_state, SaveState::Conflict | SaveState::Failed)
+        {
+            window.push_notification(
+                Notification::warning(
+                    "This note has edits that couldn't be saved. Save or reload it first.",
+                ),
+                cx,
+            );
+            return;
+        }
+        self.load(path, true, window, cx);
+    }
+
+    fn load(&mut self, path: &Path, focus: bool, window: &mut Window, cx: &mut Context<Self>) {
+        let (text, modified) = match notes::read_note(path) {
+            Ok(loaded) => loaded,
+            Err(error) => {
+                window.push_notification(
+                    Notification::error(format!(
+                        "Couldn't open {}: {error}",
+                        ui::display_path(path)
+                    )),
+                    cx,
+                );
+                return;
+            }
+        };
+        let name = SharedString::from(notes::note_name(path));
+        self.autosave = None;
+        self.word_count = ui::word_count(&text);
+        self.save_state = SaveState::Saved;
+        self.current = Some(OpenNote {
+            path: path.to_path_buf(),
+            name: name.clone(),
+            disk_modified: modified,
+            saved_text: text.clone(),
+        });
+        self.editor
+            .update(cx, |editor, cx| editor.set_value(text, window, cx));
+        if focus {
+            self.focus_editor(window, cx);
+        }
+        window.set_window_title(&format!("{name} — Noty"));
+        cx.notify();
+    }
+
+    fn focus_editor(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.current.is_some() {
+            self.editor
+                .update(cx, |editor, cx| editor.focus(window, cx));
+        }
+    }
+
+    fn zoom(&mut self, points: f32, cx: &mut Context<Self>) {
+        self.font_size = points.clamp(MIN_FONT_SIZE, MAX_FONT_SIZE);
+        self.config.set_font_size(self.font_size);
+        self.persist_config();
+        cx.notify();
+    }
+
+    fn zoom_in(&mut self, _: &ZoomIn, _: &mut Window, cx: &mut Context<Self>) {
+        self.zoom(self.font_size + 1., cx);
+    }
+
+    fn zoom_out(&mut self, _: &ZoomOut, _: &mut Window, cx: &mut Context<Self>) {
+        self.zoom(self.font_size - 1., cx);
+    }
+
+    fn zoom_reset(&mut self, _: &ZoomReset, _: &mut Window, cx: &mut Context<Self>) {
+        self.zoom(Config::default_font_size(), cx);
+    }
+
+    fn persist_config(&self) {
+        if let Err(error) = self.config.save() {
+            eprintln!("noty: could not save the settings: {error}");
+        }
+    }
+
+    fn quit(&mut self, _: &Quit, window: &mut Window, cx: &mut Context<Self>) {
+        self.save(false, window, cx);
         cx.quit();
     }
 
@@ -65,8 +344,14 @@ impl Workspace {
         cx: &mut Context<Self>,
     ) -> impl IntoElement + use<> {
         let theme = cx.theme();
+        let this = cx.entity().downgrade();
         let show_close =
             cfg!(target_os = "linux") && matches!(window.window_decorations(), Decorations::Server);
+        let dirty = matches!(self.save_state, SaveState::Unsaved | SaveState::Conflict);
+        let title = self
+            .current
+            .as_ref()
+            .map_or(SharedString::new_static("Noty"), |note| note.name.clone());
         let close = div()
             .id("close-window")
             .flex_none()
@@ -79,7 +364,11 @@ impl Workspace {
             .hover(|style| style.bg(theme.accent))
             .cursor_pointer()
             .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
-            .on_click(|_, window, _| window.remove_window())
+            .on_click(move |_, window, cx| {
+                this.update(cx, |this, cx| this.save(false, window, cx))
+                    .ok();
+                window.remove_window();
+            })
             .child(ui::icon(AppIcon::Close, px(12.), theme.muted_foreground));
 
         TitleBar::new().child(
@@ -94,12 +383,38 @@ impl Workspace {
                         .flex_1()
                         .flex()
                         .justify_center()
+                        .items_center()
+                        .gap(px(6.))
                         .text_size(px(13.))
                         .font_weight(FontWeight::MEDIUM)
-                        .text_color(theme.muted_foreground)
-                        .child("Noty"),
+                        .text_color(theme.foreground)
+                        .child(title)
+                        .when(dirty, |title| {
+                            title.child(div().size(px(6.)).rounded_full().bg(theme.primary))
+                        }),
                 ),
         )
+    }
+
+    fn render_editor(&self, window: &Window, cx: &mut Context<Self>) -> impl IntoElement + use<> {
+        let font = cx.theme().mono_font_family.clone();
+        let width = window.viewport_size().width;
+        let side = ((width - px(TEXT_COLUMN)) / 2.).max(px(20.));
+        div()
+            .key_context("NotyEditor")
+            .size_full()
+            .pl(side)
+            .pr(side)
+            .pt(px(12.))
+            .child(
+                Editor::new(&self.editor)
+                    .appearance(false)
+                    .bordered(false)
+                    .h_full()
+                    .font_family(font)
+                    .text_size(px(self.font_size * 4. / 3.))
+                    .line_height(relative(1.6)),
+            )
     }
 
     fn render_welcome(&self, cx: &mut Context<Self>) -> impl IntoElement + use<> {
@@ -136,23 +451,51 @@ impl Workspace {
 
     fn render_status_bar(&self, cx: &mut Context<Self>) -> impl IntoElement + use<> {
         let theme = cx.theme();
+        let (state_icon, state_label, state_color) = match self.save_state {
+            SaveState::Saved => (AppIcon::Saved, "Saved", theme.muted_foreground),
+            SaveState::Unsaved => (AppIcon::Unsaved, "Editing", theme.muted_foreground),
+            SaveState::Conflict => (AppIcon::Warning, "Changed on disk", theme.warning),
+            SaveState::Failed => (AppIcon::Warning, "Not saved", theme.danger),
+        };
+        let zoom = (self.font_size / Config::default_font_size() * 100.).round() as i32;
+        let location = match &self.current {
+            Some(note) => ui::display_path(&note.path),
+            None => ui::display_path(self.store.dir()),
+        };
+
         div()
             .h(px(26.))
             .px(px(12.))
             .flex()
             .items_center()
+            .gap(px(14.))
             .border_t_1()
             .border_color(theme.border)
             .bg(theme.status_bar)
             .text_size(px(12.))
             .text_color(theme.muted_foreground)
-            .child(
-                div()
-                    .flex_1()
-                    .min_w_0()
-                    .truncate()
-                    .child(ui::display_path(self.store.dir())),
-            )
+            .child(div().flex_1().min_w_0().truncate().child(location))
+            .when(zoom != 100, |bar| bar.child(format!("{zoom}%")))
+            .when(self.current.is_some(), |bar| {
+                bar.child(format!(
+                    "{} {}",
+                    self.word_count,
+                    if self.word_count == 1 {
+                        "word"
+                    } else {
+                        "words"
+                    }
+                ))
+                .child(
+                    div()
+                        .flex()
+                        .items_center()
+                        .gap(px(5.))
+                        .text_color(state_color)
+                        .child(ui::icon(state_icon, px(12.), state_color))
+                        .child(state_label),
+                )
+            })
     }
 }
 
@@ -164,14 +507,23 @@ impl Render for Workspace {
             theme.foreground,
             theme.font_family.clone(),
         );
+        let body = if self.current.is_some() {
+            self.render_editor(window, cx).into_any_element()
+        } else {
+            self.render_welcome(cx).into_any_element()
+        };
         let title_bar = self.render_title_bar(window, cx);
-        let welcome = self.render_welcome(cx);
         let status_bar = self.render_status_bar(cx);
 
         div()
             .id("workspace")
             .key_context("NotyWorkspace")
             .track_focus(&self.focus_handle)
+            .on_action(cx.listener(Self::save_action))
+            .on_action(cx.listener(Self::reload_action))
+            .on_action(cx.listener(Self::zoom_in))
+            .on_action(cx.listener(Self::zoom_out))
+            .on_action(cx.listener(Self::zoom_reset))
             .on_action(cx.listener(Self::quit))
             .size_full()
             .flex()
@@ -180,7 +532,7 @@ impl Render for Workspace {
             .text_color(foreground)
             .font_family(font_family)
             .child(title_bar)
-            .child(div().flex_1().min_h_0().child(welcome))
+            .child(div().flex_1().min_h_0().child(body))
             .child(status_bar)
     }
 }

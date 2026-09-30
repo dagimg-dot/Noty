@@ -8,6 +8,9 @@ use crate::config::home_dir;
 pub enum AppIcon {
     Close,
     Notes,
+    Saved,
+    Unsaved,
+    Warning,
 }
 
 impl AppIcon {
@@ -15,6 +18,9 @@ impl AppIcon {
         match self {
             AppIcon::Close => "icons/close.svg",
             AppIcon::Notes => "icons/book-open.svg",
+            AppIcon::Saved => "icons/check.svg",
+            AppIcon::Unsaved => "icons/asterisk.svg",
+            AppIcon::Warning => "icons/triangle-alert.svg",
         }
     }
 }
@@ -35,9 +41,13 @@ pub fn display_path(path: &Path) -> String {
     }
 }
 
+pub fn word_count(text: &str) -> usize {
+    text.split_whitespace().count()
+}
+
 #[cfg(test)]
 mod tests {
-    use super::display_path;
+    use super::{display_path, word_count};
     use crate::config::home_dir;
 
     #[test]
@@ -50,5 +60,11 @@ mod tests {
             display_path(std::path::Path::new("/srv/notes")),
             "/srv/notes"
         );
+    }
+
+    #[test]
+    fn words_are_whitespace_separated() {
+        assert_eq!(word_count("# Title\n\nsome *notes* here"), 5);
+        assert_eq!(word_count("   "), 0);
     }
 }
