@@ -7,7 +7,6 @@ use gpui_kit::component::input::{
     Editor, EditorState, Input, InputEvent, InputState, Rope, TabSize,
 };
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenu};
-use gpui_kit::component::notification::Notification;
 use gpui_kit::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, TitleBar, WindowExt as _,
 };
@@ -26,7 +25,7 @@ use crate::notes::{self, NoteStore, SaveOutcome};
 use crate::saver::{FinishedSave, SaveJob, Saver};
 use crate::search::{Search, SearchEvent};
 use crate::theme::{ThemeLibrary, Variant};
-use crate::ui::{self, AppIcon, PRIMARY_KEY};
+use crate::ui::{self, AppIcon, PRIMARY_KEY, Tone};
 
 const AUTOSAVE_DELAY: Duration = Duration::from_millis(800);
 const WORD_COUNT_DELAY: Duration = Duration::from_millis(250);
@@ -163,10 +162,13 @@ impl Workspace {
     fn rescan(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if let Err(error) = self.store.scan() {
             window.push_notification(
-                Notification::error(format!(
-                    "Couldn't read {}: {error}",
-                    ui::display_path(self.store.dir())
-                )),
+                ui::notification(
+                    Tone::Error,
+                    format!(
+                        "Couldn't read {}: {error}",
+                        ui::display_path(self.store.dir())
+                    ),
+                ),
                 cx,
             );
         }
@@ -218,11 +220,13 @@ impl Workspace {
                 Ok(path) => {
                     self.open(&path, window, cx);
                     window.push_notification(
-                        Notification::success(format!("Created “{}”", name.trim())),
+                        ui::notification(Tone::Success, format!("Created “{}”", name.trim())),
                         cx,
                     );
                 }
-                Err(error) => window.push_notification(Notification::error(error.to_string()), cx),
+                Err(error) => {
+                    window.push_notification(ui::notification(Tone::Error, error.to_string()), cx)
+                }
             },
             SearchEvent::Dismissed => self.focus_editor(window, cx),
         }
@@ -389,11 +393,14 @@ impl Workspace {
             Ok(SaveOutcome::Conflict) => {
                 self.save_state = SaveState::Conflict;
                 window.push_notification(
-                    Notification::warning(format!(
-                        "“{}” changed outside Noty. Save keeps your version, \
+                    ui::notification(
+                        Tone::Warning,
+                        format!(
+                            "“{}” changed outside Noty. Save keeps your version, \
                          Reload loads theirs.",
-                        current.name
-                    ))
+                            current.name
+                        ),
+                    )
                     .autohide(false),
                     cx,
                 );
@@ -401,7 +408,10 @@ impl Workspace {
             Err(error) => {
                 self.save_state = SaveState::Failed;
                 window.push_notification(
-                    Notification::error(format!("Couldn't save “{}”: {error}", current.name)),
+                    ui::notification(
+                        Tone::Error,
+                        format!("Couldn't save “{}”: {error}", current.name),
+                    ),
                     cx,
                 );
             }
@@ -423,7 +433,10 @@ impl Workspace {
             let (name, path) = (current.name.clone(), current.path.clone());
             self.load(&path, false, window, cx);
             window.push_notification(
-                Notification::info(format!("Reloaded “{name}”, it changed outside Noty.")),
+                ui::notification(
+                    Tone::Info,
+                    format!("Reloaded “{name}”, it changed outside Noty."),
+                ),
                 cx,
             );
         } else if self.save_state != SaveState::Conflict {
@@ -435,7 +448,7 @@ impl Workspace {
         let force = matches!(self.save_state, SaveState::Conflict | SaveState::Failed);
         self.save(force, window, cx);
         if force && self.save_state == SaveState::Saved {
-            window.push_notification(Notification::success("Saved your version."), cx);
+            window.push_notification(ui::notification(Tone::Success, "Saved your version."), cx);
         }
     }
 
@@ -459,7 +472,8 @@ impl Workspace {
             && matches!(self.save_state, SaveState::Conflict | SaveState::Failed)
         {
             window.push_notification(
-                Notification::warning(
+                ui::notification(
+                    Tone::Warning,
                     "This note has edits that couldn't be saved. Save or reload it first.",
                 ),
                 cx,
@@ -474,10 +488,10 @@ impl Workspace {
             Ok(loaded) => loaded,
             Err(error) => {
                 window.push_notification(
-                    Notification::error(format!(
-                        "Couldn't open {}: {error}",
-                        ui::display_path(path)
-                    )),
+                    ui::notification(
+                        Tone::Error,
+                        format!("Couldn't open {}: {error}", ui::display_path(path)),
+                    ),
                     cx,
                 );
                 return;
@@ -635,7 +649,10 @@ impl Workspace {
                     }
                 }
                 self.refresh_notes(window, cx);
-                window.push_notification(Notification::success(format!("Renamed to “{name}”")), cx);
+                window.push_notification(
+                    ui::notification(Tone::Success, format!("Renamed to “{name}”")),
+                    cx,
+                );
                 true
             }
             Err(error) => {
@@ -686,11 +703,12 @@ impl Workspace {
             }
         }
         match self.store.delete(path) {
-            Ok(()) => {
-                window.push_notification(Notification::success(format!("Deleted “{name}”")), cx)
-            }
+            Ok(()) => window.push_notification(
+                ui::notification(Tone::Success, format!("Deleted “{name}”")),
+                cx,
+            ),
             Err(error) => window.push_notification(
-                Notification::error(format!("Couldn't delete “{name}”: {error}")),
+                ui::notification(Tone::Error, format!("Couldn't delete “{name}”: {error}")),
                 cx,
             ),
         }

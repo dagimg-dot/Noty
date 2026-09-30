@@ -2,7 +2,8 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
-use gpui_kit::component::ActiveTheme as _;
+use gpui_kit::component::notification::Notification;
+use gpui_kit::component::{ActiveTheme as _, Icon, IconName};
 use gpui_kit::*;
 
 use crate::config::home_dir;
@@ -48,6 +49,34 @@ pub fn icon(icon: AppIcon, size: Pixels, color: Hsla) -> Svg {
         .size(size)
         .flex_none()
         .text_color(color)
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Tone {
+    Info,
+    Success,
+    Warning,
+    Error,
+}
+
+pub fn notification(tone: Tone, message: impl Into<SharedString>) -> Notification {
+    let message = message.into();
+    Notification::new().content(move |_, _, cx| {
+        let theme = cx.theme();
+        let (icon, color) = match tone {
+            Tone::Info => (IconName::Info, theme.info),
+            Tone::Success => (IconName::CircleCheck, theme.success),
+            Tone::Warning => (IconName::TriangleAlert, theme.warning),
+            Tone::Error => (IconName::CircleX, theme.danger),
+        };
+        div()
+            .flex()
+            .items_center()
+            .gap(px(12.))
+            .child(div().flex_none().child(Icon::new(icon).text_color(color)))
+            .child(div().flex_1().min_w_0().text_sm().child(message.clone()))
+            .into_any_element()
+    })
 }
 
 pub fn app_logo(size: Pixels) -> Img {
