@@ -1,3 +1,4 @@
+use std::cmp::Reverse;
 use std::fs;
 use std::io::{self, Write as _};
 use std::path::{Path, PathBuf};
@@ -59,7 +60,7 @@ impl NoteStore {
         collect_notes(&self.dir, self.recurse, &mut notes)?;
         match self.sort {
             SortMethod::Name => notes.sort_by_key(|note| note.name.to_lowercase()),
-            SortMethod::Modified => notes.sort_by(|a, b| b.modified.cmp(&a.modified)),
+            SortMethod::Modified => notes.sort_by_key(|note| Reverse(note.modified)),
         }
         self.notes = notes;
         Ok(())
