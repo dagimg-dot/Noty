@@ -59,7 +59,7 @@ impl NoteStore {
         let mut notes = Vec::new();
         collect_notes(&self.dir, self.recurse, &mut notes)?;
         match self.sort {
-            SortMethod::Name => notes.sort_by_key(|note| note.name.to_lowercase()),
+            SortMethod::Name => notes.sort_by_cached_key(|note| note.name.to_lowercase()),
             SortMethod::Modified => notes.sort_by_key(|note| Reverse(note.modified)),
         }
         self.notes = notes;
