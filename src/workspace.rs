@@ -561,7 +561,7 @@ impl Workspace {
                         .flex()
                         .flex_col()
                         .gap(px(8.))
-                        .child(Input::new(&field))
+                        .child(Input::new(&field).focus_bordered(false))
                         .when_some(error, |form, error| {
                             form.child(
                                 div()
