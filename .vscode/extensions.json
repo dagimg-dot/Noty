@@ -1,7 +1,6 @@
 {
     "recommendations": [
-        "bodil.blueprint-gtk",
-        "mesonbuild.mesonbuild",
-        "charliermarsh.ruff"
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml"
     ]
 }
