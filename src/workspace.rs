@@ -14,9 +14,9 @@ use gpui_kit::*;
 
 use crate::actions::{
     Confirm, ConfirmCreate, DeleteNote, Dismiss, FocusSearch, FollowSystemAppearance, Quit,
-    ReloadNote, RenameNote, SaveNote, SelectNext, SelectPrev, SelectTheme, ShowShortcuts,
-    ToggleCloseButton, ToggleLineNumbers, UseDarkAppearance, UseLightAppearance, ZoomIn, ZoomOut,
-    ZoomReset,
+    ReloadNote, RenameNote, SaveNote, SelectNext, SelectPrev, SelectTheme, ShowAbout,
+    ShowShortcuts, ToggleCloseButton, ToggleLineNumbers, UseDarkAppearance, UseLightAppearance,
+    ZoomIn, ZoomOut, ZoomReset,
 };
 use crate::appearance;
 use crate::config::{Appearance, Config, MAX_FONT_SIZE, MIN_FONT_SIZE};
@@ -27,6 +27,7 @@ use crate::ui::{self, AppIcon, PRIMARY_KEY};
 
 const AUTOSAVE_DELAY: Duration = Duration::from_millis(800);
 const TEXT_COLUMN: f32 = 760.;
+const HOMEPAGE: &str = "https://github.com/dagimg-dot/noty";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum SaveState {
@@ -722,6 +723,10 @@ impl Workspace {
         });
     }
 
+    fn show_about(&mut self, _: &ShowAbout, window: &mut Window, cx: &mut Context<Self>) {
+        window.open_dialog(cx, |dialog, _, cx| dialog.w(px(340.)).child(about(cx)));
+    }
+
     fn zoom(&mut self, points: f32, cx: &mut Context<Self>) {
         self.font_size = points.clamp(MIN_FONT_SIZE, MAX_FONT_SIZE);
         self.config.set_font_size(self.font_size);
@@ -912,6 +917,7 @@ impl Workspace {
                         .menu("Actual Size", Box::new(ZoomReset))
                         .separator()
                         .menu("Keyboard Shortcuts", Box::new(ShowShortcuts))
+                        .menu("About Noty", Box::new(ShowAbout))
                         .menu("Quit", Box::new(Quit))
                     }),
             )
@@ -1118,6 +1124,47 @@ fn shortcut_list(cx: &App) -> Div {
         .children(rows)
 }
 
+fn about(cx: &App) -> Div {
+    let theme = cx.theme();
+    div()
+        .flex()
+        .flex_col()
+        .items_center()
+        .gap(px(6.))
+        .py(px(10.))
+        .child(ui::app_logo(px(72.)))
+        .child(
+            div()
+                .mt(px(6.))
+                .text_size(px(22.))
+                .font_weight(FontWeight::SEMIBOLD)
+                .child("Noty"),
+        )
+        .child(
+            div()
+                .text_size(px(13.))
+                .text_color(theme.muted_foreground)
+                .child(format!("Version {}", env!("CARGO_PKG_VERSION"))),
+        )
+        .child(
+            div()
+                .mt(px(6.))
+                .text_size(px(13.))
+                .text_center()
+                .child("A minimal keyboard driven note taking application"),
+        )
+        .child(
+            div()
+                .id("homepage")
+                .cursor_pointer()
+                .text_size(px(12.))
+                .text_color(theme.link)
+                .hover(|link| link.underline())
+                .on_click(|_, _, cx| cx.open_url(HOMEPAGE))
+                .child(HOMEPAGE.trim_start_matches("https://")),
+        )
+}
+
 impl Render for Workspace {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.theme();
@@ -1150,6 +1197,7 @@ impl Render for Workspace {
             .on_action(cx.listener(Self::toggle_line_numbers))
             .on_action(cx.listener(Self::toggle_close_button))
             .on_action(cx.listener(Self::show_shortcuts))
+            .on_action(cx.listener(Self::show_about))
             .on_action(cx.listener(Self::zoom_in))
             .on_action(cx.listener(Self::zoom_out))
             .on_action(cx.listener(Self::zoom_reset))

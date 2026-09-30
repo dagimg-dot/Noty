@@ -23,6 +23,7 @@ gpui_kit::actions!(
         ToggleLineNumbers,
         ToggleCloseButton,
         ShowShortcuts,
+        ShowAbout,
         Quit,
     ]
 );

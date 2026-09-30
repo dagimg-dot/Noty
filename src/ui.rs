@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
 use gpui_kit::component::ActiveTheme as _;
@@ -11,6 +12,8 @@ pub const PRIMARY_KEY: &str = if cfg!(target_os = "macos") {
 } else {
     "Ctrl"
 };
+
+const APP_ICON: &[u8] = include_bytes!("../data/icons/hicolor/scalable/apps/com.dagimg.noty.svg");
 
 #[derive(Debug, Clone, Copy)]
 pub enum AppIcon {
@@ -45,6 +48,14 @@ pub fn icon(icon: AppIcon, size: Pixels, color: Hsla) -> Svg {
         .size(size)
         .flex_none()
         .text_color(color)
+}
+
+pub fn app_logo(size: Pixels) -> Img {
+    img(Arc::new(Image::from_bytes(
+        ImageFormat::Svg,
+        APP_ICON.to_vec(),
+    )))
+    .size(size)
 }
 
 pub fn kbd(label: impl Into<SharedString>, cx: &App) -> Div {
