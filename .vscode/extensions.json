@@ -1,7 +1,0 @@
-{
-    "recommendations": [
-        "bodil.blueprint-gtk",
-        "mesonbuild.mesonbuild",
-        "charliermarsh.ruff"
-    ]
-}
