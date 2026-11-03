@@ -1,0 +1,15 @@
+{
+  "name": "Noty",
+  "slug": "noty",
+  "identifier": "com.dagimg.noty",
+  "version": "0.5.0",
+  "copyright": "© 2025 Dagim G. Astatkie",
+  "out": "build",
+  "linux": {
+    "maintainer": "Dagim G. Astatkie",
+    "comment": "A minimal keyboard driven note taking application",
+    "categories": ["Office", "Utility", "TextEditor"],
+    "webview": false,
+    "command": "noty"
+  }
+}

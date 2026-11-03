@@ -1,6 +1,5 @@
-build/
-subprojects/
-*.ui
-.flatpak-builder/
-dist/
-TODO
+/build/
+/dist/
+/.mygo/
+mygo_windows_*.syso
+/noty

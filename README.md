@@ -26,72 +26,49 @@
 - **Custom font and color scheme:** Choose your preferred font and color scheme.
 
 
+> [!NOTE]
+> This branch is porting Noty from Python/GTK4 to Go with the
+> [MyGo](https://github.com/egoist/mygo) framework. It is a work in progress:
+> for now it only lists your notes. The Python version is on the `dev` and
+> `main` branches.
+
 ## Installation
 
-### I. Flatpak (Recommended)
-
-Flatpak bundles are available from the [GitHub Releases page](https://github.com/dagimg/noty/releases). Download the latest `.flatpak` file and install it using your graphical software center or via the command line:
-
-```bash
-flatpak install noty-x.x.x.flatpak
-```
-
-### Updating
-
-```bash
-flatpak install --or-update noty.flatpak
-```
+Noty will ship as binary releases (a `.tar.gz` with an install script, a
+`.deb` and a `PKGBUILD`) from the [GitHub Releases page](https://github.com/dagimg-dot/noty/releases).
 
 ### Building from Source
 
 **Dependencies:**
 
-- Meson (`>= 1.0.0`)
-- Ninja
-- GTK4 and Libadwaita (including development and introspection packages)
-  - For Ubuntu/Debian: `libgtk-4-dev gir1.2-gtk-4.0 libadwaita-1-dev gobject-introspection libgirepository1.0-dev`
-  - For Fedora: `gtk4-devel libadwaita-devel gobject-introspection-devel`
-  - For Arch: `gtk4 libadwaita gobject-introspection`
-- Python 3
-- Blueprint Compiler (`>= 0.16.0`)
-
-**(Note:** Package names might vary slightly based on your distribution. You'll typically need both the runtime and development packages.)\*
+- Go 1.27.3 or newer (an older `go` downloads it on its own with `GOTOOLCHAIN=auto`, the default)
+- GTK 3 and libepoxy at runtime; no C compiler or development packages are needed to build
 
 **Steps:**
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/dagimg-dot/noty.git
-    cd noty
-    ```
-2.  **Build, Install and Run:**
-    The `Makefile` provides convenient targets:
+```bash
+git clone https://github.com/dagimg-dot/noty.git
+cd noty
+make run      # run with debug logging
+make dev      # rebuild and restart on changes
+make test     # run the tests
+make build    # release binary and Linux packages in build/
+```
 
-    ```bash
-    make run
-    ```
+Development builds use the app ID `com.dagimg.dev.noty`, so their settings
+(`~/.config/com.dagimg.dev.noty.json`) are kept apart from a release's
+(`~/.config/com.dagimg.noty.json`). Settings from the Python and Flatpak
+versions are picked up on first launch.
 
-    Or directly:
+## Port status
 
-    ```bash
-    make install
-    ```
-
-    ```bash
-    build/bin/noty
-    ```
-
-> **Note:** Check `Makefile` for more targets.
-
-## TODO
-
-- [x] Note renaming
-- [x] Note deletion
-- [x] Window size persistence
-- [x] Custom font picker
-- [x] Full markdown support (GtkSourceView integration)
-- [x] Vim mode
-- [x] Custom color scheme importer
+- [x] Settings, compatible with the Python version's file
+- [x] Notes directory: scan, create, rename, delete, save, external change detection
+- [ ] Main window: search, notes list, editor, toasts
+- [ ] Preferences, keyboard shortcuts, about
+- [ ] Theme system (TOML themes for the whole app and the editor)
+- [ ] Binary release workflow
+- [ ] Vim mode
 
 ## License
 
