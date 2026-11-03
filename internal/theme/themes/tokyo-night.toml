@@ -1,0 +1,45 @@
+# Tokyo Night, after the theme by enkia (MIT license),
+# https://github.com/tokyo-night/tokyo-night-vscode-theme
+
+[meta]
+name = "Tokyo Night"
+description = "A clean dark theme celebrating the lights of downtown Tokyo"
+variant = "dark"
+
+[colors.core]
+background = "#1a1b26"
+foreground = "#a9b1d6"
+secondary_background = "#24283b"
+border = "#414868"
+accent = "#7aa2f7"
+
+[colors.accents]
+blue = "#7aa2f7"
+green = "#9ece6a"
+magenta = "#bb9af7"
+orange = "#ff9e64"
+red = "#f7768e"
+yellow = "#e0af68"
+cyan = "#7dcfff"
+purple = "#bb9af7"
+
+[colors.text]
+muted = "#565f89"
+
+[colors.editor]
+cursor = "#c0caf5"
+active_line = "#292e42"
+selection = { background = "#33467c" }
+gutter = { foreground = "#3b4261", active_foreground = "#737aa2" }
+find = { match = "#ff9e6455" }
+
+[colors.syntax]
+keyword = "colors.accents.magenta"
+function = "colors.accents.blue"
+type = "#2ac3de"
+variable = "#c0caf5"
+constant = "colors.accents.orange"
+string = "colors.accents.green"
+meta = "#2ac3de"
+code = "colors.accents.cyan"
+link = "colors.accents.cyan"

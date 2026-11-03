@@ -1,0 +1,39 @@
+# Noty Dark: the root of the dark themes. Every dark theme inherits it in
+# the end, so it sets every color that is not derived from others.
+
+[meta]
+name = "Noty Dark"
+description = "A comfortable dark theme for late-night note-taking"
+variant = "dark"
+
+[colors.core]
+background = "#0d1117"
+foreground = "#e6edf3"
+secondary_background = "#161b22"
+border = "#30363d"
+accent = "#58a6ff"
+
+[colors.accents]
+blue = "#79c0ff"
+green = "#7ee787"
+magenta = "#bc8cff"
+orange = "#ffa657"
+red = "#ff7b72"
+yellow = "#e3b341"
+cyan = "#a5d6ff"
+purple = "#d2a8ff"
+
+[colors.text]
+muted = "#8b949e"
+
+[colors.editor]
+cursor = "#f0f6fc"
+active_line = "colors.core.secondary_background"
+selection = { background = "#264f78" }
+gutter = { foreground = "#6e7681", active_foreground = "#f0f6fc" }
+find = { match = "#ffd33d55" }
+
+[colors.syntax]
+keyword = { name = "colors.accents.red", bold = true }
+code = "#f85149"
+link = "colors.core.accent"

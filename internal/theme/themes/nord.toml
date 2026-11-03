@@ -1,0 +1,46 @@
+# Nord, after the Nord palette by Sven Greb (MIT license),
+# https://www.nordtheme.com
+
+[meta]
+name = "Nord"
+description = "An arctic, north-bluish clean and elegant palette"
+variant = "dark"
+
+[colors.core]
+background = "#2e3440"
+foreground = "#d8dee9"
+secondary_background = "#3b4252"
+border = "#434c5e"
+accent = "#88c0d0"
+
+[colors.accents]
+blue = "#81a1c1"
+green = "#a3be8c"
+magenta = "#b48ead"
+orange = "#d08770"
+red = "#bf616a"
+yellow = "#ebcb8b"
+cyan = "#8fbcbb"
+purple = "#b48ead"
+
+[colors.text]
+muted = "#616e88"
+
+[colors.editor]
+active_line = "colors.core.secondary_background"
+selection = { background = "#434c5e" }
+gutter = { foreground = "#4c566a" }
+find = { match = "#5e81ac88" }
+
+[colors.syntax]
+keyword = "colors.accents.blue"
+type = "colors.accents.cyan"
+function = "colors.core.accent"
+constant = "colors.core.foreground"
+number = "colors.accents.magenta"
+string = "colors.accents.green"
+escape = "colors.accents.orange"
+meta = "#5e81ac"
+heading = { name = "colors.core.accent", bold = true }
+code = "colors.accents.cyan"
+link = "colors.core.accent"

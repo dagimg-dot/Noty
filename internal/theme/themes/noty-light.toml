@@ -1,0 +1,42 @@
+# Noty Light: the root of the light themes, Noty's classic palette. Every
+# light theme inherits it in the end, so it sets every color that is not
+# derived from others.
+
+[meta]
+name = "Noty Light"
+description = "Noty's classic clean and bright palette"
+variant = "light"
+
+[colors.core]
+background = "#fefefe"
+foreground = "#2c2c2c"
+secondary_background = "#f5f5f5"
+border = "#d0d7de"
+accent = "#1a73e8"
+
+[colors.accents]
+blue = "#0550ae"
+green = "#116329"
+magenta = "#8250df"
+orange = "#953800"
+red = "#cf222e"
+yellow = "#9a6700"
+cyan = "#1b7c83"
+purple = "#8250df"
+
+[colors.text]
+muted = "#656d76"
+
+[colors.editor]
+cursor = "#000000"
+active_line = "#f8f8f8"
+selection = { background = "#b3d4fc" }
+gutter = { foreground = "#a0a0a0", active_foreground = "#666666" }
+find = { match = "#ffff99" }
+
+[colors.syntax]
+keyword = { name = "colors.accents.red", bold = true }
+string = "#032f62"
+comment = "#6a9955"
+code = "#d73a49"
+link = "#0969da"

@@ -1,0 +1,42 @@
+# Coldark Dark, after Coldark by Armand Philippot (MIT license),
+# https://github.com/ArmandPhilippot/coldark
+
+[meta]
+name = "Coldark Dark"
+description = "A cold dark palette with soft pastel accents"
+variant = "dark"
+
+[colors.core]
+background = "#111b27"
+foreground = "#e3eaf2"
+secondary_background = "#213043"
+border = "#3c526d"
+accent = "#6cb8e6"
+
+[colors.accents]
+blue = "#6cb8e6"
+green = "#91d076"
+magenta = "#f4adf4"
+orange = "#e9ae7e"
+red = "#cd6660"
+yellow = "#e6d37a"
+cyan = "#66cccc"
+purple = "#c699e3"
+
+[colors.text]
+muted = "#8da1b9"
+
+[colors.editor]
+active_line = "colors.core.secondary_background"
+selection = { background = "#3c526d" }
+gutter = { foreground = "#8da1b9" }
+find = { match = "#e6d37a66" }
+
+[colors.syntax]
+keyword = { name = "colors.accents.orange", bold = true }
+string = "colors.accents.green"
+type = "colors.accents.blue"
+constant = "colors.accents.yellow"
+meta = "colors.accents.cyan"
+code = "colors.accents.magenta"
+link = "colors.accents.green"

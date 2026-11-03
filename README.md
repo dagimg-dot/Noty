@@ -23,7 +23,7 @@
 - **Keyboard Driven:** Designed primarily for mouse-free operation.
 - **Flatpak:** Easy installation and updates.
 - **External change detection:** Automatically reload notes when changed outside the app.
-- **Custom font and color scheme:** Choose your preferred font and color scheme.
+- **Custom font and themes:** Choose your preferred font, and a theme for the whole app, or [write your own](docs/themes.md).
 
 
 > [!NOTE]
@@ -66,7 +66,8 @@ versions are picked up on first launch.
 - [x] Notes directory: scan, create, rename, delete, save, external change detection
 - [ ] Main window: search, notes list, editor, toasts
 - [ ] Preferences, keyboard shortcuts, about
-- [ ] Theme system (TOML themes for the whole app and the editor)
+- [x] Theme system: TOML themes for the whole app and the editor, with inheritance, references and live reload (see [docs/themes.md](docs/themes.md))
+- [ ] Theme picker and import in Preferences
 - [ ] Binary release workflow
 - [ ] Vim mode
 
