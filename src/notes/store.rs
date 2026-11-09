@@ -7,8 +7,12 @@ use std::time::SystemTime;
 use anyhow::{Result, bail};
 
 use super::{Note, note_name};
-use crate::config::{Config, SortMethod};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SortMethod {
+    Name,
+    Modified,
+}
 #[derive(Debug, Clone)]
 pub struct NoteStore {
     dir: PathBuf,
@@ -27,15 +31,6 @@ impl NoteStore {
             sort,
             notes: Vec::new(),
         }
-    }
-
-    pub fn from_config(config: &Config) -> Self {
-        Self::new(
-            config.notes_dir(),
-            config.recurse_subfolders(),
-            config.use_file_extension(),
-            config.sort_method(),
-        )
     }
 
     pub fn dir(&self) -> &Path {

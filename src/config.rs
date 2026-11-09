@@ -6,6 +6,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value, json};
 
+use crate::notes::SortMethod;
 use crate::theme::{Variant, base_theme_id};
 
 pub const MIN_FONT_SIZE: f32 = 8.;
@@ -18,12 +19,6 @@ pub enum Appearance {
     System,
     Light,
     Dark,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SortMethod {
-    Name,
-    Modified,
 }
 
 /// Noty's settings file, shared with the Python version of the app.

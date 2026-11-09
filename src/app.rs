@@ -53,15 +53,12 @@ pub fn run() {
         crate::platform::single_instance::Launch::Standalone => None,
     };
     let config = Config::load(Config::default_path());
-    let store = match command_line.notes_dir {
-        Some(dir) => NoteStore::new(
-            dir,
-            config.recurse_subfolders(),
-            config.use_file_extension(),
-            config.sort_method(),
-        ),
-        None => NoteStore::from_config(&config),
-    };
+    let store = NoteStore::new(
+        command_line.notes_dir.unwrap_or_else(|| config.notes_dir()),
+        config.recurse_subfolders(),
+        config.use_file_extension(),
+        config.sort_method(),
+    );
     if let Some(dir) = ThemeLibrary::user_dir() {
         let _ = std::fs::create_dir_all(dir);
     }

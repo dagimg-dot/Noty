@@ -6,7 +6,7 @@ pub mod saver;
 mod store;
 
 pub use file::{SaveOutcome, modified_time, read_note, save_note};
-pub use store::NoteStore;
+pub use store::{NoteStore, SortMethod};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Note {
