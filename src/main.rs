@@ -10,7 +10,6 @@ mod fuzzy;
 mod notes;
 #[cfg(unix)]
 mod platform;
-mod saver;
 mod search;
 mod theme;
 mod ui;

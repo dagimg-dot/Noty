@@ -8,6 +8,8 @@ use anyhow::{Result, bail};
 
 use crate::config::{Config, SortMethod};
 
+pub mod saver;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Note {
     pub name: String,
