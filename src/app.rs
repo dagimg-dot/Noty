@@ -47,10 +47,10 @@ impl CommandLine {
 pub fn run() {
     let command_line = CommandLine::parse(std::env::args().skip(1));
     #[cfg(unix)]
-    let listener = match crate::instance::claim() {
-        crate::instance::Launch::HandedOff => return,
-        crate::instance::Launch::First(listener) => Some(listener),
-        crate::instance::Launch::Standalone => None,
+    let listener = match crate::platform::single_instance::claim() {
+        crate::platform::single_instance::Launch::HandedOff => return,
+        crate::platform::single_instance::Launch::First(listener) => Some(listener),
+        crate::platform::single_instance::Launch::Standalone => None,
     };
     let config = Config::load(Config::default_path());
     let store = match command_line.notes_dir {
@@ -104,8 +104,8 @@ pub fn run() {
                     cx.activate(true);
                     #[cfg(unix)]
                     if let Some(listener) = listener {
-                        crate::instance::serve(listener, cx, move |token, cx| {
-                            crate::activation::raise(window, token, cx)
+                        crate::platform::single_instance::serve(listener, cx, move |token, cx| {
+                            crate::platform::window_raise::raise(window, token, cx)
                         });
                     }
                     #[cfg(debug_assertions)]
