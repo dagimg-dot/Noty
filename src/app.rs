@@ -7,8 +7,8 @@ use crate::config::Config;
 use crate::notes::NoteStore;
 use crate::theme::ThemeLibrary;
 use crate::ui::keymap;
+use crate::ui::main_window::MainWindow;
 use crate::ui::theme_bridge::{self, Fonts};
-use crate::workspace::Workspace;
 
 const USAGE: &str = "Usage: noty [--notes-dir PATH]
 
@@ -97,7 +97,7 @@ pub fn run() {
             };
             let opened = gpui_kit::open_window(options, cx, move |window, cx| {
                 theme_bridge::apply(&themes, &config, Some(window), cx);
-                cx.new(|cx| Workspace::new(config, themes, store, window, cx))
+                cx.new(|cx| MainWindow::new(config, themes, store, window, cx))
             });
             match opened {
                 Ok((window, _)) => {

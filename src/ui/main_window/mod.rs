@@ -60,7 +60,7 @@ struct Renaming {
     error: Option<SharedString>,
 }
 
-pub struct Workspace {
+pub struct MainWindow {
     config: Config,
     themes: ThemeLibrary,
     store: NoteStore,
@@ -79,7 +79,7 @@ pub struct Workspace {
     _subscriptions: Vec<Subscription>,
 }
 
-impl Workspace {
+impl MainWindow {
     pub fn new(
         config: Config,
         themes: ThemeLibrary,
@@ -1298,7 +1298,7 @@ fn about(cx: &App) -> Div {
         )
 }
 
-impl Render for Workspace {
+impl Render for MainWindow {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.theme();
         let (background, foreground, font_family) = (
@@ -1315,8 +1315,8 @@ impl Render for Workspace {
         let status_bar = self.render_status_bar(cx);
 
         div()
-            .id("workspace")
-            .key_context("NotyWorkspace")
+            .id("main-window")
+            .key_context("NotyMainWindow")
             .track_focus(&self.focus_handle)
             .on_action(cx.listener(Self::focus_search_action))
             .on_action(cx.listener(Self::save_action))
