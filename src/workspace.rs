@@ -13,20 +13,20 @@ use gpui_kit::component::{
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::*;
 
-use crate::actions::{
+use crate::config::{Appearance, Config, MAX_FONT_SIZE, MIN_FONT_SIZE};
+use crate::format;
+use crate::notes::saver::{FinishedSave, SaveJob, Saver};
+use crate::notes::{self, NoteStore, SaveOutcome};
+use crate::theme::{ThemeLibrary, Variant};
+use crate::ui::keymap::{
     Confirm, ConfirmCreate, DeleteNote, Dismiss, FocusSearch, FollowSystemAppearance, Quit,
     ReloadNote, RenameNote, SaveNote, SelectNext, SelectPrev, SelectTheme, ShowAbout,
     ShowShortcuts, ToggleCloseButton, ToggleLineNumbers, UseDarkAppearance, UseLightAppearance,
     ZoomIn, ZoomOut, ZoomReset,
 };
-use crate::appearance;
-use crate::config::{Appearance, Config, MAX_FONT_SIZE, MIN_FONT_SIZE};
-use crate::format;
-use crate::notes::saver::{FinishedSave, SaveJob, Saver};
-use crate::notes::{self, NoteStore, SaveOutcome};
-use crate::search::{Search, SearchEvent};
-use crate::theme::{ThemeLibrary, Variant};
-use crate::ui::{self, AppIcon, PRIMARY_KEY, Tone};
+use crate::ui::search::{Search, SearchEvent};
+use crate::ui::theme_bridge;
+use crate::ui::widgets::{self, AppIcon, PRIMARY_KEY, Tone};
 
 const AUTOSAVE_DELAY: Duration = Duration::from_millis(800);
 const WORD_COUNT_DELAY: Duration = Duration::from_millis(250);
@@ -115,7 +115,7 @@ impl Workspace {
                 }
             }),
             cx.observe_window_appearance(window, |this, window, cx| {
-                appearance::apply(&this.themes, &this.config, Some(window), cx);
+                theme_bridge::apply(&this.themes, &this.config, Some(window), cx);
             }),
         ];
         let this = cx.entity().downgrade();
@@ -163,7 +163,7 @@ impl Workspace {
     fn rescan(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if let Err(error) = self.store.scan() {
             window.push_notification(
-                ui::notification(
+                widgets::notification(
                     Tone::Error,
                     format!(
                         "Couldn't read {}: {error}",
@@ -221,13 +221,12 @@ impl Workspace {
                 Ok(path) => {
                     self.open(&path, window, cx);
                     window.push_notification(
-                        ui::notification(Tone::Success, format!("Created “{}”", name.trim())),
+                        widgets::notification(Tone::Success, format!("Created “{}”", name.trim())),
                         cx,
                     );
                 }
-                Err(error) => {
-                    window.push_notification(ui::notification(Tone::Error, error.to_string()), cx)
-                }
+                Err(error) => window
+                    .push_notification(widgets::notification(Tone::Error, error.to_string()), cx),
             },
             SearchEvent::Dismissed => self.focus_editor(window, cx),
         }
@@ -394,7 +393,7 @@ impl Workspace {
             Ok(SaveOutcome::Conflict) => {
                 self.save_state = SaveState::Conflict;
                 window.push_notification(
-                    ui::notification(
+                    widgets::notification(
                         Tone::Warning,
                         format!(
                             "“{}” changed outside Noty. Save keeps your version, \
@@ -409,7 +408,7 @@ impl Workspace {
             Err(error) => {
                 self.save_state = SaveState::Failed;
                 window.push_notification(
-                    ui::notification(
+                    widgets::notification(
                         Tone::Error,
                         format!("Couldn't save “{}”: {error}", current.name),
                     ),
@@ -434,7 +433,7 @@ impl Workspace {
             let (name, path) = (current.name.clone(), current.path.clone());
             self.load(&path, false, window, cx);
             window.push_notification(
-                ui::notification(
+                widgets::notification(
                     Tone::Info,
                     format!("Reloaded “{name}”, it changed outside Noty."),
                 ),
@@ -449,7 +448,10 @@ impl Workspace {
         let force = matches!(self.save_state, SaveState::Conflict | SaveState::Failed);
         self.save(force, window, cx);
         if force && self.save_state == SaveState::Saved {
-            window.push_notification(ui::notification(Tone::Success, "Saved your version."), cx);
+            window.push_notification(
+                widgets::notification(Tone::Success, "Saved your version."),
+                cx,
+            );
         }
     }
 
@@ -473,7 +475,7 @@ impl Workspace {
             && matches!(self.save_state, SaveState::Conflict | SaveState::Failed)
         {
             window.push_notification(
-                ui::notification(
+                widgets::notification(
                     Tone::Warning,
                     "This note has edits that couldn't be saved. Save or reload it first.",
                 ),
@@ -489,7 +491,7 @@ impl Workspace {
             Ok(loaded) => loaded,
             Err(error) => {
                 window.push_notification(
-                    ui::notification(
+                    widgets::notification(
                         Tone::Error,
                         format!("Couldn't open {}: {error}", format::display_path(path)),
                     ),
@@ -651,7 +653,7 @@ impl Workspace {
                 }
                 self.refresh_notes(window, cx);
                 window.push_notification(
-                    ui::notification(Tone::Success, format!("Renamed to “{name}”")),
+                    widgets::notification(Tone::Success, format!("Renamed to “{name}”")),
                     cx,
                 );
                 true
@@ -705,11 +707,11 @@ impl Workspace {
         }
         match self.store.delete(path) {
             Ok(()) => window.push_notification(
-                ui::notification(Tone::Success, format!("Deleted “{name}”")),
+                widgets::notification(Tone::Success, format!("Deleted “{name}”")),
                 cx,
             ),
             Err(error) => window.push_notification(
-                ui::notification(Tone::Error, format!("Couldn't delete “{name}”: {error}")),
+                widgets::notification(Tone::Error, format!("Couldn't delete “{name}”: {error}")),
                 cx,
             ),
         }
@@ -785,7 +787,7 @@ impl Workspace {
 
     fn settings_changed(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.persist_config();
-        appearance::apply(&self.themes, &self.config, Some(window), cx);
+        theme_bridge::apply(&self.themes, &self.config, Some(window), cx);
         cx.notify();
     }
 
@@ -908,7 +910,11 @@ impl Workspace {
                     .ok();
                 window.remove_window();
             })
-            .child(ui::icon(AppIcon::Close, px(14.), theme.muted_foreground));
+            .child(widgets::icon(
+                AppIcon::Close,
+                px(14.),
+                theme.muted_foreground,
+            ));
 
         let unsaved_dot = div()
             .size(px(7.))
@@ -919,7 +925,11 @@ impl Workspace {
             .small()
             .cleanable(true)
             .focus_bordered(false)
-            .prefix(ui::icon(AppIcon::Search, px(14.), theme.muted_foreground))
+            .prefix(widgets::icon(
+                AppIcon::Search,
+                px(14.),
+                theme.muted_foreground,
+            ))
             .when(dirty, |field| field.suffix(unsaved_dot));
         let search_field = div()
             .key_context(search_context)
@@ -1071,7 +1081,11 @@ impl Workspace {
             .justify_center()
             .gap(px(8.))
             .px(px(24.))
-            .child(ui::icon(AppIcon::Notes, px(30.), theme.muted_foreground))
+            .child(widgets::icon(
+                AppIcon::Notes,
+                px(30.),
+                theme.muted_foreground,
+            ))
             .child(
                 div()
                     .mt(px(4.))
@@ -1096,17 +1110,17 @@ impl Workspace {
                     .flex()
                     .flex_col()
                     .gap(px(9.))
-                    .child(ui::shortcut_hint_groups(
+                    .child(widgets::shortcut_hint_groups(
                         &[&[PRIMARY_KEY, "P"], &["Alt", "S"]],
                         "Search or create",
                         cx,
                     ))
-                    .child(ui::shortcut_hint_groups(
+                    .child(widgets::shortcut_hint_groups(
                         &[&["↑", "↓"], &["Ctrl", "J", "K"]],
                         "Move through notes",
                         cx,
                     ))
-                    .child(ui::shortcut_hint(&["↵"], "Open, or create if new", cx)),
+                    .child(widgets::shortcut_hint(&["↵"], "Open, or create if new", cx)),
             )
     }
 
@@ -1153,7 +1167,7 @@ impl Workspace {
                         .items_center()
                         .gap(px(5.))
                         .text_color(state_color)
-                        .child(ui::icon(state_icon, px(12.), state_color))
+                        .child(widgets::icon(state_icon, px(12.), state_color))
                         .child(state_label),
                 )
             })
@@ -1221,7 +1235,10 @@ fn shortcut_list(cx: &App) -> Div {
             });
             separator
                 .into_iter()
-                .chain(keys.iter().map(|key| ui::kbd(*key, cx).into_any_element()))
+                .chain(
+                    keys.iter()
+                        .map(|key| widgets::kbd(*key, cx).into_any_element()),
+                )
                 .collect::<Vec<_>>()
         });
         div()
@@ -1248,7 +1265,7 @@ fn about(cx: &App) -> Div {
         .items_center()
         .gap(px(6.))
         .py(px(10.))
-        .child(ui::app_logo(px(72.)))
+        .child(widgets::app_logo(px(72.)))
         .child(
             div()
                 .mt(px(6.))

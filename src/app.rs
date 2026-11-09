@@ -3,11 +3,11 @@ use std::path::PathBuf;
 use gpui_kit::component::TitleBar;
 use gpui_kit::*;
 
-use crate::actions;
-use crate::appearance::{self, Fonts};
 use crate::config::Config;
 use crate::notes::NoteStore;
 use crate::theme::ThemeLibrary;
+use crate::ui::keymap;
+use crate::ui::theme_bridge::{self, Fonts};
 use crate::workspace::Workspace;
 
 const USAGE: &str = "Usage: noty [--notes-dir PATH]
@@ -74,8 +74,8 @@ pub fn run() {
         .with_assets(gpui_kit::assets::Assets)
         .run(move |cx| {
             gpui_kit::init(cx);
-            actions::bind_keys(cx);
-            appearance::register(&themes, cx);
+            keymap::bind_keys(cx);
+            theme_bridge::register(&themes, cx);
             cx.set_global(Fonts::pick(&config, cx));
             cx.on_window_closed(|cx, _| {
                 if cx.windows().is_empty() {
@@ -96,7 +96,7 @@ pub fn run() {
                 ..TitleBar::window_options()
             };
             let opened = gpui_kit::open_window(options, cx, move |window, cx| {
-                appearance::apply(&themes, &config, Some(window), cx);
+                theme_bridge::apply(&themes, &config, Some(window), cx);
                 cx.new(|cx| Workspace::new(config, themes, store, window, cx))
             });
             match opened {

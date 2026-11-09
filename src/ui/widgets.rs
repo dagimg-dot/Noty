@@ -10,7 +10,8 @@ pub const PRIMARY_KEY: &str = if cfg!(target_os = "macos") {
     "Ctrl"
 };
 
-const APP_ICON: &[u8] = include_bytes!("../data/icons/hicolor/scalable/apps/com.dagimg.noty.svg");
+const APP_ICON: &[u8] =
+    include_bytes!("../../data/icons/hicolor/scalable/apps/com.dagimg.noty.svg");
 
 #[derive(Debug, Clone, Copy)]
 pub enum AppIcon {

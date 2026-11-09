@@ -8,12 +8,15 @@ use gpui_kit::component::menu::ContextMenuExt as _;
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::*;
 
-use crate::actions::{
+use crate::notes::Note;
+use crate::ui::keymap::{
     Confirm, ConfirmCreate, DeleteNote, Dismiss, RenameNote, SelectNext, SelectPrev,
 };
-use crate::fuzzy::fuzzy_match;
-use crate::notes::Note;
-use crate::ui::{self, AppIcon};
+use crate::ui::widgets::{self, AppIcon};
+
+mod fuzzy;
+
+use fuzzy::fuzzy_match;
 
 const ROW_HEIGHT: f32 = 32.;
 const VISIBLE_ROWS: usize = 6;
@@ -269,7 +272,7 @@ impl Search {
                 } else {
                     muted
                 };
-                row.child(ui::icon(AppIcon::Note, px(14.), icon_color))
+                row.child(widgets::icon(AppIcon::Note, px(14.), icon_color))
                     .child(
                         div()
                             .flex_1()
@@ -288,7 +291,7 @@ impl Search {
                     )
             }
             Row::Create(name) => row
-                .child(ui::icon(AppIcon::Create, px(14.), accent))
+                .child(widgets::icon(AppIcon::Create, px(14.), accent))
                 .child(
                     div()
                         .flex_1()
@@ -305,7 +308,7 @@ impl Search {
                         )
                         .child("”"),
                 )
-                .when(selected, |row| row.child(ui::kbd("↵", cx))),
+                .when(selected, |row| row.child(widgets::kbd("↵", cx))),
         };
 
         let is_note = matches!(self.rows[ix], Row::Note { .. });

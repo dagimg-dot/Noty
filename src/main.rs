@@ -1,17 +1,13 @@
 #![cfg_attr(windows, windows_subsystem = "windows")]
 
-mod actions;
 mod app;
-mod appearance;
 mod config;
 #[cfg(debug_assertions)]
 mod debug_replay;
 mod format;
-mod fuzzy;
 mod notes;
 #[cfg(unix)]
 mod platform;
-mod search;
 mod theme;
 mod ui;
 mod workspace;
