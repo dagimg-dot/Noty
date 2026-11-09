@@ -1,41 +1,21 @@
 use std::rc::Rc;
 
-use gpui_kit::component::ActiveTheme as _;
-use gpui_kit::component::Icon;
-use gpui_kit::component::IconName;
-use gpui_kit::component::Sizable as _;
-use gpui_kit::component::TitleBar;
 use gpui_kit::component::button::Button;
 use gpui_kit::component::input::Input;
-use gpui_kit::component::menu::DropdownMenu as _;
-use gpui_kit::component::menu::PopupMenu;
+use gpui_kit::component::menu::{DropdownMenu as _, PopupMenu};
+use gpui_kit::component::{ActiveTheme as _, Icon, IconName, Sizable as _, TitleBar};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::*;
 
 use super::{MainWindow, SaveState};
 use crate::config::Appearance;
 use crate::theme::Variant;
-use crate::ui::keymap::Confirm;
-use crate::ui::keymap::ConfirmCreate;
-use crate::ui::keymap::DeleteNote;
-use crate::ui::keymap::Dismiss;
-use crate::ui::keymap::FollowSystemAppearance;
-use crate::ui::keymap::Quit;
-use crate::ui::keymap::RenameNote;
-use crate::ui::keymap::SelectNext;
-use crate::ui::keymap::SelectPrev;
-use crate::ui::keymap::SelectTheme;
-use crate::ui::keymap::ShowAbout;
-use crate::ui::keymap::ShowShortcuts;
-use crate::ui::keymap::ToggleCloseButton;
-use crate::ui::keymap::ToggleLineNumbers;
-use crate::ui::keymap::UseDarkAppearance;
-use crate::ui::keymap::UseLightAppearance;
-use crate::ui::keymap::ZoomIn;
-use crate::ui::keymap::ZoomOut;
-use crate::ui::keymap::ZoomReset;
-use crate::ui::widgets;
-use crate::ui::widgets::AppIcon;
+use crate::ui::keymap::{
+    Confirm, ConfirmCreate, DeleteNote, Dismiss, FollowSystemAppearance, Quit, RenameNote,
+    SelectNext, SelectPrev, SelectTheme, ShowAbout, ShowShortcuts, ToggleCloseButton,
+    ToggleLineNumbers, UseDarkAppearance, UseLightAppearance, ZoomIn, ZoomOut, ZoomReset,
+};
+use crate::ui::widgets::{self, AppIcon};
 
 struct ThemeChoice {
     id: SharedString,

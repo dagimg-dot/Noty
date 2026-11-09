@@ -1,12 +1,9 @@
-use gpui_kit::component::ActiveTheme as _;
-use gpui_kit::component::WindowExt as _;
+use gpui_kit::component::{ActiveTheme as _, WindowExt as _};
 use gpui_kit::*;
 
 use super::MainWindow;
-use crate::ui::keymap::ShowAbout;
-use crate::ui::keymap::ShowShortcuts;
-use crate::ui::widgets;
-use crate::ui::widgets::PRIMARY_KEY;
+use crate::ui::keymap::{ShowAbout, ShowShortcuts};
+use crate::ui::widgets::{self, PRIMARY_KEY};
 
 const HOMEPAGE: &str = "https://github.com/dagimg-dot/noty";
 

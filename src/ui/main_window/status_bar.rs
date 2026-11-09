@@ -5,8 +5,7 @@ use gpui_kit::*;
 use super::{MainWindow, SaveState};
 use crate::config::Config;
 use crate::format;
-use crate::ui::widgets;
-use crate::ui::widgets::AppIcon;
+use crate::ui::widgets::{self, AppIcon};
 
 impl MainWindow {
     pub(super) fn render_status_bar(&self, cx: &mut Context<Self>) -> impl IntoElement + use<> {

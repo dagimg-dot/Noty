@@ -5,14 +5,10 @@ use gpui_kit::*;
 
 use super::{MainWindow, SaveState};
 use crate::format;
-use crate::notes;
-use crate::notes::SaveOutcome;
-use crate::notes::saver::FinishedSave;
-use crate::notes::saver::SaveJob;
-use crate::ui::keymap::ReloadNote;
-use crate::ui::keymap::SaveNote;
-use crate::ui::widgets;
-use crate::ui::widgets::Tone;
+use crate::notes::saver::{FinishedSave, SaveJob};
+use crate::notes::{self, SaveOutcome};
+use crate::ui::keymap::{ReloadNote, SaveNote};
+use crate::ui::widgets::{self, Tone};
 
 const AUTOSAVE_DELAY: Duration = Duration::from_millis(800);
 const WORD_COUNT_DELAY: Duration = Duration::from_millis(250);

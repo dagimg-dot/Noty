@@ -1,14 +1,8 @@
 use std::path::PathBuf;
 use std::time::SystemTime;
 
-use gpui_kit::component::ActiveTheme as _;
-use gpui_kit::component::WindowExt as _;
-use gpui_kit::component::input::Editor;
-use gpui_kit::component::input::EditorState;
-use gpui_kit::component::input::InputEvent;
-use gpui_kit::component::input::InputState;
-use gpui_kit::component::input::Rope;
-use gpui_kit::component::input::TabSize;
+use gpui_kit::component::input::{Editor, EditorState, InputEvent, InputState, Rope, TabSize};
+use gpui_kit::component::{ActiveTheme as _, WindowExt as _};
 use gpui_kit::*;
 
 use crate::config::Config;
@@ -16,15 +10,10 @@ use crate::format;
 use crate::notes::NoteStore;
 use crate::notes::saver::Saver;
 use crate::theme::ThemeLibrary;
-use crate::ui::keymap::FocusSearch;
-use crate::ui::keymap::Quit;
-use crate::ui::search::Search;
-use crate::ui::search::SearchEvent;
+use crate::ui::keymap::{FocusSearch, Quit};
+use crate::ui::search::{Search, SearchEvent};
 use crate::ui::theme_bridge;
-use crate::ui::widgets;
-use crate::ui::widgets::AppIcon;
-use crate::ui::widgets::PRIMARY_KEY;
-use crate::ui::widgets::Tone;
+use crate::ui::widgets::{self, AppIcon, PRIMARY_KEY, Tone};
 
 mod dialogs;
 mod note_actions;

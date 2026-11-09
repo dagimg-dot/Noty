@@ -1,20 +1,12 @@
 use gpui_kit::*;
 
 use super::MainWindow;
-use crate::config::Appearance;
-use crate::config::Config;
-use crate::config::MAX_FONT_SIZE;
-use crate::config::MIN_FONT_SIZE;
+use crate::config::{Appearance, Config, MAX_FONT_SIZE, MIN_FONT_SIZE};
 use crate::theme::Variant;
-use crate::ui::keymap::FollowSystemAppearance;
-use crate::ui::keymap::SelectTheme;
-use crate::ui::keymap::ToggleCloseButton;
-use crate::ui::keymap::ToggleLineNumbers;
-use crate::ui::keymap::UseDarkAppearance;
-use crate::ui::keymap::UseLightAppearance;
-use crate::ui::keymap::ZoomIn;
-use crate::ui::keymap::ZoomOut;
-use crate::ui::keymap::ZoomReset;
+use crate::ui::keymap::{
+    FollowSystemAppearance, SelectTheme, ToggleCloseButton, ToggleLineNumbers, UseDarkAppearance,
+    UseLightAppearance, ZoomIn, ZoomOut, ZoomReset,
+};
 use crate::ui::theme_bridge;
 
 impl MainWindow {

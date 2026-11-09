@@ -1,23 +1,15 @@
-use std::path::Path;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use gpui_kit::component::ActiveTheme as _;
-use gpui_kit::component::WindowExt as _;
-use gpui_kit::component::button::Button;
-use gpui_kit::component::button::ButtonVariant;
-use gpui_kit::component::button::ButtonVariants as _;
-use gpui_kit::component::input::Input;
-use gpui_kit::component::input::InputState;
+use gpui_kit::component::button::{Button, ButtonVariant, ButtonVariants as _};
+use gpui_kit::component::input::{Input, InputState};
+use gpui_kit::component::{ActiveTheme as _, WindowExt as _};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::*;
 
 use super::{MainWindow, OpenNote, Renaming, SaveState};
-use crate::format;
-use crate::notes;
-use crate::ui::keymap::DeleteNote;
-use crate::ui::keymap::RenameNote;
-use crate::ui::widgets;
-use crate::ui::widgets::Tone;
+use crate::ui::keymap::{DeleteNote, RenameNote};
+use crate::ui::widgets::{self, Tone};
+use crate::{format, notes};
 
 impl MainWindow {
     /// Opens `path`, saving the current note first. Edits that could not
