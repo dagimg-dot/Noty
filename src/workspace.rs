@@ -922,7 +922,6 @@ impl Workspace {
             .key_context(search_context)
             .flex_1()
             .min_w_0()
-            .mx(px(if show_close { 14. } else { 24. }))
             .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
             .on_action(cx.listener(|this, action: &SelectNext, window, cx| {
                 this.search
@@ -944,13 +943,14 @@ impl Workspace {
                 this.search
                     .update(cx, |search, cx| search.dismiss(action, window, cx))
             }))
-            .child(Styled::h(field, px(30.)));
+            .child(Styled::h(field, px(34.)));
 
-        TitleBar::new().child(
+        TitleBar::new().h(px(47.)).pl(px(6.)).child(
             div()
                 .size_full()
                 .flex()
                 .items_center()
+                .gap(px(6.))
                 .pr(px(6.))
                 .when(show_close, |bar| bar.child(close))
                 .child(search_field)
