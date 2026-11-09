@@ -109,7 +109,7 @@ pub fn run() {
                         });
                     }
                     #[cfg(debug_assertions)]
-                    crate::script::run_from_env(window, cx);
+                    crate::debug_replay::run_from_env(window, cx);
                     #[cfg(not(debug_assertions))]
                     let _ = window;
                 }

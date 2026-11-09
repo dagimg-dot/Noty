@@ -4,13 +4,13 @@ mod actions;
 mod app;
 mod appearance;
 mod config;
+#[cfg(debug_assertions)]
+mod debug_replay;
 mod fuzzy;
 mod notes;
 #[cfg(unix)]
 mod platform;
 mod saver;
-#[cfg(debug_assertions)]
-mod script;
 mod search;
 mod theme;
 mod ui;
