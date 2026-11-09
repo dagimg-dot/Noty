@@ -52,7 +52,6 @@ pub enum Semantic {
     ListItemHoverBackground,
     ListItemHoverForeground,
     ListItemSecondaryHoverForeground,
-    ListItemSecondaryHoverBackground,
     ListItemSelectionBackground,
     ListItemSelectionForeground,
     ListItemSecondarySelectionBackground,
@@ -64,7 +63,6 @@ pub enum Semantic {
     SecondaryScrollBarBackground,
     PopoverBackground,
     PopoverBorder,
-    SecondaryBackgroundBorder,
     TooltipBackground,
     TooltipForeground,
     TooltipBorder,
@@ -209,7 +207,6 @@ pub enum ColorValue {
 pub struct ThemeFile {
     pub id: String,
     pub name: String,
-    pub description: String,
     pub variant: Variant,
     pub inherits: Option<String>,
     pub colors: HashMap<Semantic, ColorValue>,
@@ -259,7 +256,6 @@ impl ThemeFile {
             theme: ThemeFile {
                 id: id.to_owned(),
                 name: name.to_owned(),
-                description: text("description").unwrap_or_default().to_owned(),
                 variant,
                 inherits: text("inherits").map(str::to_owned),
                 colors,
