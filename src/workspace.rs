@@ -990,8 +990,9 @@ impl Workspace {
             )
             .child(
                 Button::new("main-menu")
-                    .ghost()
+                    .outline()
                     .small()
+                    .size(px(34.))
                     .icon(Icon::new(IconName::Ellipsis))
                     .tooltip("Main Menu")
                     .dropdown_menu_with_anchor(Anchor::TopRight, move |menu, window, cx| {
