@@ -21,6 +21,7 @@ use crate::actions::{
 };
 use crate::appearance;
 use crate::config::{Appearance, Config, MAX_FONT_SIZE, MIN_FONT_SIZE};
+use crate::format;
 use crate::notes::saver::{FinishedSave, SaveJob, Saver};
 use crate::notes::{self, NoteStore, SaveOutcome};
 use crate::search::{Search, SearchEvent};
@@ -166,7 +167,7 @@ impl Workspace {
                     Tone::Error,
                     format!(
                         "Couldn't read {}: {error}",
-                        ui::display_path(self.store.dir())
+                        format::display_path(self.store.dir())
                     ),
                 ),
                 cx,
@@ -285,7 +286,7 @@ impl Workspace {
         self.recount = Some(cx.spawn(async move |this, cx| {
             cx.background_executor().timer(WORD_COUNT_DELAY).await;
             this.update(cx, |this, cx| {
-                this.word_count = ui::word_count(this.editor.read(cx).text().chunks());
+                this.word_count = format::word_count(this.editor.read(cx).text().chunks());
                 cx.notify();
             })
             .ok();
@@ -490,7 +491,7 @@ impl Workspace {
                 window.push_notification(
                     ui::notification(
                         Tone::Error,
-                        format!("Couldn't open {}: {error}", ui::display_path(path)),
+                        format!("Couldn't open {}: {error}", format::display_path(path)),
                     ),
                     cx,
                 );
@@ -500,7 +501,7 @@ impl Workspace {
         let name = SharedString::from(notes::note_name(path));
         self.autosave = None;
         self.recount = None;
-        self.word_count = ui::word_count([text.as_str()]);
+        self.word_count = format::word_count([text.as_str()]);
         self.save_state = SaveState::Saved;
         self.editor
             .update(cx, |editor, cx| editor.set_value(text, window, cx));
@@ -1086,7 +1087,7 @@ impl Workspace {
                     .child(format!(
                         "{count} {} in {}",
                         if count == 1 { "note" } else { "notes" },
-                        ui::display_path(self.store.dir())
+                        format::display_path(self.store.dir())
                     )),
             )
             .child(
@@ -1119,8 +1120,8 @@ impl Workspace {
         };
         let zoom = (self.font_size / Config::default_font_size() * 100.).round() as i32;
         let location = match &self.current {
-            Some(note) => ui::display_path(&note.path),
-            None => ui::display_path(self.store.dir()),
+            Some(note) => format::display_path(&note.path),
+            None => format::display_path(self.store.dir()),
         };
 
         div()

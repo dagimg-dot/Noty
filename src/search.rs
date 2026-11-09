@@ -284,7 +284,7 @@ impl Search {
                             .flex_none()
                             .text_size(px(12.))
                             .text_color(muted)
-                            .child(ui::relative_time(*modified)),
+                            .child(crate::format::relative_time(*modified)),
                     )
             }
             Row::Create(name) => row

@@ -203,7 +203,7 @@ fn theme_key(variant: Variant) -> &'static str {
     }
 }
 
-pub fn home_dir() -> PathBuf {
+fn home_dir() -> PathBuf {
     dirs::home_dir().unwrap_or_default()
 }
 
