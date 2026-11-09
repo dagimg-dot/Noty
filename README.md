@@ -138,6 +138,25 @@ This puts `noty` in `~/.local/bin` and its desktop entry and icons in `~/.local/
 
 > **Note:** Check `Makefile` for more targets, such as `test`, `lint` and `dist`, which builds the release tarball.
 
+## Project Layout
+
+If you want to work on Noty, start at `src/app.rs`, which loads the settings and opens the window.
+
+| Path                  | What lives there                                                            |
+| --------------------- | --------------------------------------------------------------------------- |
+| `src/app.rs`          | Startup: command line, settings, opening the window                         |
+| `src/config.rs`       | The settings file                                                           |
+| `src/notes/`          | Notes on disk: the folder, safe single-file saves, the background save worker |
+| `src/theme/`          | Theme files, inheritance and colors                                         |
+| `src/ui/main_window/` | The app window, split into saving, note actions, settings, bars and dialogs |
+| `src/ui/search/`      | The search list and fuzzy matching                                          |
+| `src/ui/`             | Key bindings, shared widgets, and handing themes to the UI toolkit          |
+| `src/platform/`       | Focusing the running Noty when it is launched again                         |
+| `src/format.rs`       | Word counts, relative times and shortened paths                             |
+| `src/debug_replay.rs` | Keystroke replay for UI testing, in debug builds only                       |
+
+`notes`, `theme` and `platform` never depend on `ui`, so storage and theming can be read and tested without the interface.
+
 ## TODO
 
 - [x] Note renaming
