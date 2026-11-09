@@ -891,8 +891,10 @@ impl Workspace {
         let close = div()
             .id("close-window")
             .flex_none()
-            .size(px(24.))
-            .rounded_full()
+            .size(px(34.))
+            .rounded(theme.radius)
+            .border_1()
+            .border_color(theme.input)
             .flex()
             .items_center()
             .justify_center()
@@ -905,7 +907,7 @@ impl Workspace {
                     .ok();
                 window.remove_window();
             })
-            .child(ui::icon(AppIcon::Close, px(12.), theme.muted_foreground));
+            .child(ui::icon(AppIcon::Close, px(14.), theme.muted_foreground));
 
         let unsaved_dot = div()
             .size(px(7.))
