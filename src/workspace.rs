@@ -21,8 +21,8 @@ use crate::actions::{
 };
 use crate::appearance;
 use crate::config::{Appearance, Config, MAX_FONT_SIZE, MIN_FONT_SIZE};
-use crate::notes::{self, NoteStore, SaveOutcome};
 use crate::notes::saver::{FinishedSave, SaveJob, Saver};
+use crate::notes::{self, NoteStore, SaveOutcome};
 use crate::search::{Search, SearchEvent};
 use crate::theme::{ThemeLibrary, Variant};
 use crate::ui::{self, AppIcon, PRIMARY_KEY, Tone};
