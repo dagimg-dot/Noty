@@ -5,6 +5,7 @@ mod config;
 #[cfg(debug_assertions)]
 mod debug_replay;
 mod format;
+mod line_edit;
 mod notes;
 #[cfg(unix)]
 mod platform;

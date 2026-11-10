@@ -16,6 +16,7 @@ use crate::ui::theme_bridge;
 use crate::ui::widgets::{self, AppIcon, PRIMARY_KEY, Tone};
 
 mod dialogs;
+mod line_actions;
 mod note_actions;
 mod saving;
 mod settings;
@@ -386,6 +387,10 @@ impl Render for MainWindow {
             .on_action(cx.listener(Self::use_light_appearance))
             .on_action(cx.listener(Self::use_dark_appearance))
             .on_action(cx.listener(Self::toggle_line_numbers))
+            .on_action(cx.listener(Self::move_line_up))
+            .on_action(cx.listener(Self::move_line_down))
+            .on_action(cx.listener(Self::duplicate_line_up))
+            .on_action(cx.listener(Self::duplicate_line_down))
             .on_action(cx.listener(Self::toggle_close_button))
             .on_action(cx.listener(Self::show_shortcuts))
             .on_action(cx.listener(Self::show_about))
