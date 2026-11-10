@@ -53,6 +53,8 @@ fn shortcut_list(cx: &App) -> Div {
             ],
             "Text size",
         ),
+        (&[&["Alt", "↑"], &["Alt", "↓"]], "Move lines"),
+        (&[&["⇧", "Alt", "↑"], &["⇧", "Alt", "↓"]], "Duplicate lines"),
         (&[&["Alt", "L"]], "Line numbers"),
         (&[&[PRIMARY_KEY, "Q"]], "Quit"),
     ];
