@@ -37,15 +37,15 @@
   <screenshots>
     <screenshot type="default">
       <image>
-        https://i.ibb.co/352fBR7r/Screenshot-From-2025-04-09-21-49-52.png
+        https://raw.githubusercontent.com/dagimg-dot/noty/main/data/screenshots/editor.png
       </image>
-      <caption>Main Editor</caption>
+      <caption>Editing a note</caption>
     </screenshot>
     <screenshot>
       <image>
-        https://i.ibb.co/gbZr6ks5/Screenshot-From-2025-04-09-21-50-26.png
+        https://raw.githubusercontent.com/dagimg-dot/noty/main/data/screenshots/search.png
       </image>
-      <caption>Note List</caption>
+      <caption>Searching notes</caption>
     </screenshot>
   </screenshots>
 
