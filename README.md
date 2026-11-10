@@ -39,6 +39,8 @@
 | <kbd>Ctrl</kbd>+<kbd>S</kbd> | Save now, or keep your version after a conflict |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> | Reload the note from disk |
 | <kbd>Ctrl</kbd>+<kbd>=</kbd>, <kbd>Ctrl</kbd>+<kbd>-</kbd>, <kbd>Ctrl</kbd>+<kbd>0</kbd> | Bigger, smaller or default text size |
+| <kbd>Alt</kbd>+<kbd>↑</kbd>, <kbd>Alt</kbd>+<kbd>↓</kbd> | Move the current or selected lines up or down |
+| <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>↑</kbd>, <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd> | Duplicate the current or selected lines above or below |
 | <kbd>Alt</kbd>+<kbd>L</kbd> | Toggle line numbers |
 | <kbd>Ctrl</kbd>+<kbd>?</kbd> | Show all shortcuts |
 | <kbd>Ctrl</kbd>+<kbd>Q</kbd> | Quit |
@@ -153,6 +155,7 @@ If you want to work on Noty, start at `src/app.rs`, which loads the settings and
 | `src/ui/`             | Key bindings, shared widgets, and handing themes to the UI toolkit          |
 | `src/platform/`       | Focusing the running Noty when it is launched again                         |
 | `src/format.rs`       | Word counts, relative times and shortened paths                             |
+| `src/line_edit.rs`    | Moving and duplicating lines in the editor                                  |
 | `src/debug_replay.rs` | Keystroke replay for UI testing, in debug builds only                       |
 
 `notes`, `theme` and `platform` never depend on `ui`, so storage and theming can be read and tested without the interface.
