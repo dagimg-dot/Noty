@@ -3,6 +3,14 @@ PREFIX ?= $(HOME)/.local
 NOTY_VERSION = $(shell sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml)
 DIST_NAME = noty-$(NOTY_VERSION)-linux-$(shell uname -m)
 STAGE = target/dist/$(DIST_NAME)
+RUST_HOST = $(shell rustc -vV | sed -n 's/^host: //p')
+RUST_LLD_DIR = $(shell rustc --print sysroot)/lib/rustlib/$(RUST_HOST)/bin/gcc-ld
+
+ifneq ($(findstring linux,$(RUST_HOST)),)
+ifneq ($(wildcard $(RUST_LLD_DIR)/ld.lld),)
+FOLD_IDENTICAL_CODE = -- -C link-arg=-B$(RUST_LLD_DIR) -C link-arg=-fuse-ld=lld -C link-arg=-Wl,--icf=all
+endif
+endif
 
 .PHONY: run build test lint install uninstall dist clean bump release
 
@@ -10,7 +18,7 @@ run:
 	NOTY_APP_ID=com.dagimg.dev.noty cargo run
 
 build:
-	cargo build --release --locked
+	cargo rustc --release --locked $(FOLD_IDENTICAL_CODE)
 
 test:
 	cargo test
